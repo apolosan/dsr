@@ -1,0 +1,4 @@
+node_modules
+.secret
+.secret_deploy
+hardhat_node_fork_command
