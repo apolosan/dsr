@@ -6,14 +6,14 @@
 Developed by systemdefi.crypto and rsd.cash teams
 ---------------------------------------------------------------------------------------
 DeFi System for Reference (DSR) ís your automated financial platform in a token. Instead of manually investing on
-DeFi platforms, you just deposit/send native cryptocurrencies into this smart contract. You will receive DSR
-tokens in exchange for it and will be automatically participating in our investing pool.
+DeFi platforms, you just deposit/send native cryptocurrencies into this smart contract and tokenize your investment.
+You will receive DSR tokens in exchange for it and will be automatically participating in our investing pool.
 
-You can monitore your own investment by checking your DSR token balance. If you have more DSR tokens in your wallet than
+"You can monitore your own investment by checking your DSR token balance. If you have more DSR tokens in your wallet than
 when you minted, it means you are in profit and can redeem these tokens in exchange for native cryptocurrency.
 
 To redeem your profit, just invoke the burn() function, and you will receive back the correspondent amount in the form of native
-cryptocurrency (ETH, BNB, MATIC, FTM, etc).
+cryptocurrency (ETH, BNB, MATIC, FTM, etc)."
 
 Suppose this smart contract is deployed on Binance Smart Chain (BSC Network). You send 1 BNB to the DSR token smart contract
 and receive the correspondent amount in DSR tokens (1000 DSR for example). That 1 BNB is then invested in some selected
@@ -34,6 +34,7 @@ import "./IUniswapV2Router02.sol";
 import "./IUniswapV2Factory.sol";
 import "./IWETH.sol";
 import "./Manager.sol"; //TODO: use interface instead (because this contract will be deployed first in order to hide its source code)
+import "./DsrHelper.sol";
 /* import "hardhat/console.sol"; */
 
 contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR"), Ownable {
@@ -42,6 +43,8 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 
 	address public rsdTokenAddress;
 	address public sdrTokenAddress;
+
+	address public dsrHelperAddress;
 
 	address public dsrEthPair;
 	address public dsrRsdPair;
@@ -188,8 +191,8 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		} else {
 			uint256 rsdBalance = _rsdToken.balanceOf(dsrRsdPair);
 			uint256 dsrBalance = balanceOf(dsrRsdPair);
-			dsrBalance = dsrBalance == 0 ? 1 : dsrBalance;
-			return (rsdBalance.div(dsrBalance));
+			rsdBalance = rsdBalance == 0 ? 1 : rsdBalance;
+			return (dsrBalance.div(rsdBalance));
 		}
 	}
 
@@ -202,6 +205,41 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 			dsrBalance = dsrBalance == 0 ? 1 : dsrBalance;
 			return (sdrBalance.div(dsrBalance));
 		}
+	}
+
+	function _getRsdEthPoolRate() private view returns(uint256) {
+		if (address(rsdEthPair) == address(0)) {
+			return 1;
+		} else {
+			uint256 rsdBalance = _rsdToken.balanceOf(rsdEthPair);
+			uint256 ethBalance = _wEth.balanceOf(rsdEthPair);
+			ethBalance = ethBalance == 0 ? 1 : ethBalance;
+			return (rsdBalance.div(ethBalance));
+		}
+	}
+
+	function _swapRsdForDsr(uint256 tokenAmount) private returns(bool) {
+
+		DsrHelper dsrHelper;
+		if (dsrHelperAddress == address(0)) {
+			dsrHelper = new DsrHelper(address(this));
+			dsrHelperAddress = address(dsrHelper);
+		}
+
+		// generate the pair path of RSD -> DSR on exchange router contract
+		address[] memory path = new address[](2);
+		path[0] = rsdTokenAddress;
+		path[1] = address(this);
+
+		_approve(address(this), address(_exchangeRouter), tokenAmount);
+
+		try _exchangeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+			tokenAmount,
+			0, // accept any amount of RSD
+			path,
+			dsrHelperAddress,
+			block.timestamp
+		) { return true; } catch { return false; }
 	}
 
 	function initializeTokenContract(
@@ -266,10 +304,33 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 
 		if (rsdBalance < _rsdToken.balanceOf(address(this))) {
 			uint256 earnedRsd = _rsdToken.balanceOf(address(this)).sub(rsdBalance);
-			_mint(address(this), _getDsrRsdPoolRate().mul(earnedRsd));
-			_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
-		}
 
+			DsrHelper dsrHelper;
+			if (balanceOf(address(this)) == 0) {
+				// DSR amount in DSR contract and in DSR/RSD LP is both 0. In this case we mint DSR and deposit initial liquidity into the DSR/RSD LP with the earned RSD from PoBet, with the corresponding amount of DSR following the rate of RSD in the RSD/ETH LP
+				if (balanceOf(_dsrRsdPair) == 0) {
+					_mint(address(this), _getRsdEthPoolRate().mul(earnedRsd));
+					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
+				} else {
+					// DSR amount in DSR contract is 0, but we have some DSR in DSR/RSD LP. Here we buy DSR with half of earned RSD from PoBet and deposit them into the DSR/RSD LP
+					if (_swapRsdForDsr(earnedRsd.div(2))) {
+						dsrHelper = DsrHelper(dsrHelperAddress);
+						dsrHelper.withdrawTokensSent(address(this));
+						_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd.div(2));
+					}
+				}
+			} else {
+				// DSR contract has some DSR amount, but we don't have liquidity in DSR/RSD LP. So, we just add initial liquidity instead
+				if (balanceOf(_dsrRsdPair) == 0) {
+					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
+				} else {
+					// DSR contract has some DSR amount and there is liquidity in DSR/RSD LP. We need to check the rate of DSR/RSD pool before add liquidity in DSR/RSD LP
+					uint256 minAmount = _getDsrRsdPoolRate().mul(earnedRsd.div(2)) > balanceOf(address(this)) ? balanceOf(address(this)) : _getDsrRsdPoolRate().mul(earnedRsd.div(2));
+					_addLiquidityDsrRsd(minAmount, earnedRsd.div(2));
+				}
+			}
+		}
+		// We also help to improve randomness of the RSD token contract
 		_rsdToken.generateRandomMoreThanOnce();
 		delete rsdBalance;
 	}
