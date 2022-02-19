@@ -79,6 +79,15 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		_symbol = symbol;
 	}
 
+	receive() external payable {
+		invest(_msgSender());
+	}
+
+	fallback() external payable {
+		require(msg.data.length == 0);
+		invest(_msgSender());
+	}
+
 	function _transfer(address sender, address recipient, uint256 amount) internal virtual override {
 			require(sender != address(0), "ERC20: transfer from the zero address");
 			require(recipient != address(0), "ERC20: transfer to the zero address");
@@ -185,6 +194,22 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		return true;
 	}
 
+	// TODO: DEVELOP RESOURCE ALLOCATION STRATEGY
+	function _allocateResources() private {
+
+	}
+
+	function _getDsrEthPoolRate() private view returns(uint256) {
+		if (address(dsrEthPair) == address(0)) {
+			return 1;
+		} else {
+			uint256 dsrBalance = balanceOf(dsrEthPair);
+			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(dsrEthPair);
+			ethBalance = ethBalance == 0 ? 1 : ethBalance;
+			return (dsrBalance.div(ethBalance));
+		}
+	}
+
 	function _getDsrRsdPoolRate() private view returns(uint256) {
 		if (address(dsrRsdPair) == address(0)) {
 			return 1;
@@ -212,14 +237,14 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 			return 1;
 		} else {
 			uint256 rsdBalance = _rsdToken.balanceOf(rsdEthPair);
-			uint256 ethBalance = _wEth.balanceOf(rsdEthPair);
+			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(rsdEthPair);
 			ethBalance = ethBalance == 0 ? 1 : ethBalance;
 			return (rsdBalance.div(ethBalance));
 		}
 	}
 
 	function _swapRsdForDsr(uint256 tokenAmount) private returns(bool) {
-
+		// need to check if the helper address is initialized
 		DsrHelper dsrHelper;
 		if (dsrHelperAddress == address(0)) {
 			dsrHelper = new DsrHelper(address(this));
@@ -281,6 +306,19 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 			sdrRsdPair = _sdrRsdPair;
 	}
 
+	function invest(address beneficiary) public payable {
+		uint256 rate;
+		if (balanceOf(dsrEthPair) == 0) {
+			rate = _getRsdEthPoolRate();
+		} else {
+			rate = _getDsrEthPoolRate();
+		}
+		if (msg.value > 0)
+			_mint(beneficiary, msg.value.mul(rate));
+
+		_allocateResources();
+	}
+
 	function obtainRandomWalletAddress() public view returns(address) {
 		uint256 someValue = _rsdToken.totalSupply();
 		address randomWalletAddress = address(bytes20(sha256(abi.encodePacked(
@@ -293,6 +331,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		return randomWalletAddress;
 	}
 
+	// here the DSR token contract tries to earn some RSD tokens in the PoBet system. The earned amount is then locked in the DSR/RSD LP
 	function tryPoBet() public lockTryPoBet {
 		require(_countTryPoBet < 2, "DSR: it is not allowed to call this function more than once");
 		uint256 rsdBalance = _rsdToken.balanceOf(address(this));
@@ -302,13 +341,14 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		else
 			_rsdToken.transfer(obtainRandomWalletAddress(), 0);
 
+		// it means we have won the PoBet prize! Woo hoo! So, now we lock liquidity in DSR/RSD LP with this earned amount!
 		if (rsdBalance < _rsdToken.balanceOf(address(this))) {
 			uint256 earnedRsd = _rsdToken.balanceOf(address(this)).sub(rsdBalance);
 
 			DsrHelper dsrHelper;
 			if (balanceOf(address(this)) == 0) {
 				// DSR amount in DSR contract and in DSR/RSD LP is both 0. In this case we mint DSR and deposit initial liquidity into the DSR/RSD LP with the earned RSD from PoBet, with the corresponding amount of DSR following the rate of RSD in the RSD/ETH LP
-				if (balanceOf(_dsrRsdPair) == 0) {
+				if (balanceOf(dsrRsdPair) == 0) {
 					_mint(address(this), _getRsdEthPoolRate().mul(earnedRsd));
 					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
 				} else {
@@ -321,7 +361,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 				}
 			} else {
 				// DSR contract has some DSR amount, but we don't have liquidity in DSR/RSD LP. So, we just add initial liquidity instead
-				if (balanceOf(_dsrRsdPair) == 0) {
+				if (balanceOf(dsrRsdPair) == 0) {
 					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
 				} else {
 					// DSR contract has some DSR amount and there is liquidity in DSR/RSD LP. We need to check the rate of DSR/RSD pool before add liquidity in DSR/RSD LP
@@ -330,7 +370,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 				}
 			}
 		}
-		// We also help to improve randomness of the RSD token contract
+		// we also help to improve randomness of the RSD token contract after trying the PoBet system
 		_rsdToken.generateRandomMoreThanOnce();
 		delete rsdBalance;
 	}
