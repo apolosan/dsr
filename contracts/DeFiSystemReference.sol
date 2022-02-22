@@ -73,7 +73,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 
 	uint256 private _countTryPoBet;
 	uint256 private _totalInvestedSupply;
-	uint256 private _totalSpendableProfit;
+	uint256 private _totalSpendableProfit; // TODO: used to avoid an recipient is able to spend some inexistent profit. Develop control
 	uint256 private _totalSupply;
 	uint256 private constant _FACTOR = 10000;
 
@@ -134,16 +134,29 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 					_currentProfitSpent[sender] = _currentProfitSpent[sender].add(amount);
 					_totalSpendableProfit = _totalSpendableProfit.sub(amount);
 					_balances[sender] = _balances[sender].sub(amount);
+					/* _totalInvestedSupply = _totalInvestedSupply.add(amount); */
 				} else {
 					uint256 spendableDifference = amount.sub(profitSpendable);
 					_currentProfitSpent[sender] = _currentProfitSpent[sender].add(profitSpendable);
 					_totalSpendableProfit = _totalSpendableProfit.sub(profitSpendable);
 					_balances[sender] = _balances[sender].sub(spendableDifference);
+					/* _totalInvestedSupply = _totalInvestedSupply.add(spendableDifference); */
 				}
 			} else {
 				_balances[sender] = senderBalance.sub(amount);
 			}
-			_balances[recipient] = _balances[recipient].add(amount);
+
+			// To avoid the recipient be able to spend an inexistent profit we consider he already spent the current claimable profit
+			// He will be able to earn profit in the next cycle, after the call of receiveProfit() function
+			if (_balances[recipient] == 0) {
+				_balances[recipient] = _balances[recipient].add(amount);
+				_currentProfitSpent[recipient] = _currentProfitSpent[recipient].add(potentialProfitPerAccount(recipient));
+			} else {
+				uint256 previousSpendableProfitRecipient = potentialProfitPerAccount(recipient);
+				_balances[recipient] = _balances[recipient].add(amount);
+				uint256 currentSpendableProfitRecipient = potentialProfitPerAccount(recipient);
+				_currentProfitSpent[recipient] = _currentProfitSpent[recipient].add(currentSpendableProfitRecipient.sub(previousSpendableProfitRecipient));
+			}
 
 			emit Transfer(sender, recipient, amount);
 	}
