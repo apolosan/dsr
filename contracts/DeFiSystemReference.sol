@@ -73,7 +73,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 
 	uint256 private _countTryPoBet;
 	uint256 private _totalInvestedSupply;
-	uint256 private _totalSpendableProfit; // TODO: used to avoid an recipient is able to spend some inexistent profit. Develop control
+	uint256 private _totalSpendableProfit; // TODO: used to avoid an recipient is able to spend some inexistent profit. Develop control. NOT NEEDED ANYMORE. INSPECT...
 	uint256 private _totalSupply;
 	uint256 private constant _FACTOR = 10000;
 
@@ -380,6 +380,10 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 
 	function checkForProfit() public {
 		// TODO: reward msg.sender of this function if there is some profit
+	}
+
+	function getAvailableTotalProfit() public view returns(uint256) {
+		return _totalSpendableProfit;
 	}
 
 	function initializeTokenContract(
