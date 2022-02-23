@@ -10,7 +10,15 @@ const mnemonic_ = fs.readFileSync(path.resolve(__dirname, ".secret_deploy")).toS
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  	solidity: "0.8.0",
+  	solidity: {
+			version: "0.8.0",
+			settings: {
+				optimizer: {
+					enabled: true,
+					runs: 5
+				}
+			}
+		},
 	networks: {
 		development: {
 			url: `http://127.0.0.1:8545`,

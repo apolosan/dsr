@@ -12,36 +12,38 @@ them and will be automatically participating in our investing pool by receiving 
 DSR tokens (easily exchangeable for native cryptocurrency), regularly.
 
 Part of your investment and profit are locked into LP so you can redeem it in the case. You can monitor your investment
-by checking your DSR token balance. If you have more DSR tokens in your wallet than when you minted, it means
+by checking your DSR token balance. If you have more DSR tokens in your wallet than when you minted, it means that
 you are in profit and can trade these additional tokens in exchange for native cryptocurrency. There will always be
 liquidity to get part of your investment back (and your profit as well) once the minted amount locked in LP is worth
 the same or more than the invested supply, initially.
 
 Suppose this smart contract is deployed on Binance Smart Chain (BSC Network). You send 1 BNB to the DSR token smart
 contract and receive the correspondent amount in DSR tokens (1000 DSR for example, according to the current rate of
-DSR/BNB LP). That 1 BNB is splitted into 2 parts. The first part is locked in the DSR/BNB LP, following the rate of
-500 DSR minted for 0.5 BNB (hipotetically). The second part is sent to managers, which are smart contracts developed
-to automatically invest that remaining 0.5 BNB in some selected DeFi platforms. Each manager has its own investment
-strategy.
+DSR/BNB LP). That 1 BNB is splitted into 2 parts (not necessarily equal). The first part is locked in the DSR/BNB LP,
+following the rate of 500 DSR minted for 0.5 BNB (hipotetically). The second part is sent to managers, which are smart
+contracts developed to automatically invest that remaining 0.5 BNB in some selected DeFi platforms. Each manager has
+its own investment strategy.
 
 The second part of the investment is not redeemable. However, the DSR managers will be always providing dividend yield
-for DSR token holders on a regular basis, while the network and the selected DeFi platform exists (forever).
+for DSR token holders on a regular basis, while the network and the selected DeFi platform exists (forever!).
 
 Part of the profit earned is locked as liquidity as well. Where DSR contract provides indirect liquidity for RSD and
 SDR tokens. The DSR smart contract also takes advantage of the RSD Proof of Bet (PoBet) system by calling its contract
 regularly until it receives the prize given to senders. After, the amount received is then locked as liquidity with DSR
 and SDR tokens.
-* CHECADORES DE LUCROS RECEBEM PARTE DO VALOR DA FUNÇÃO SE OS MANAGERS RETORNAREM LUCRO NAQUELE INSTANTE
+
+In order to incentivize people to run the checkForProfit() function constantly, the DSR smart contract will reward the
+function caller (sender) if the contract detects some claimable profit.
 
 If you are considering to not invest on DSR at the moment, just remember you had acquired some tokens in the past only
-with the 'promise' of their price going up. Here, even if the token price does not go up, you are earning passive income,
-which eliminates some risk. In order to price goes down, someone besides you has to mint more DSR tokens to sell them,
-and the only way to do this is by directly investing in the DSR smart contract, which implicates in more locked liquidity
-and more money for the managers to invest.
+with the 'promise' of their price going up. With DSR, even if the token price does not go up, you are earning passive
+income, which eliminates some risk. In order to price goes down, someone besides you has to mint more DSR tokens to sell
+them, and the only way to do this is by directly investing in the DSR smart contract, which implicates in more locked
+liquidity and more money for the managers to invest...
 
 Even if you are some of those investors which may choose to not take the risk of directly interacting with the contract
 and having half of their investment locked in, you can opt for buy DSR from the DSR/BNB LP instead. This is also good,
-once it will help to increase demand for the asset and push its price upforward. You are still earning dividends for
+once it will help to increase demand for the asset and push its price upforward. You still keep earning dividends for
 your tokens, proportionally.
 ---------------------------------------------------------------------------------------
 */
@@ -52,14 +54,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./IReferenceSystemDeFi.sol";
+import "./IDeFiSystemReference.sol";
 import "./IUniswapV2Router02.sol";
 import "./IUniswapV2Factory.sol";
 import "./IWETH.sol";
-import "./Manager.sol"; //TODO: use interface instead (because this contract will be deployed first in order to hide its source code)
+import "./IManager.sol";
 import "./DsrHelper.sol";
 /* import "hardhat/console.sol"; */
 
-contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR"), Ownable {
+contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi System for Reference", "DSR"), Ownable {
 
 	using SafeMath for uint256;
 
@@ -67,7 +70,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 	address public sdrTokenAddress;
 
 	address public dsrHelperAddress;
-	address public payable developerComissionAddress;
+	address payable public developerComissionAddress;
 
 	address public dsrEthPair;
 	address public dsrRsdPair;
@@ -77,13 +80,13 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 
 	uint256 private _countTryPoBet;
 	uint256 private _totalInvestedSupply;
-	uint256 private _totalSpendableProfit; // TODO: used to avoid an recipient is able to spend some inexistent profit. Develop control. NOT NEEDED ANYMORE. INSPECT...
 	uint256 private _totalSupply;
 	uint256 private constant _FACTOR = 10000;
 
-	uint256 public liquidityProfitShare = 7000;
+	uint256 public liquidityProfitShare = 6000; // 60.00%
+	uint256 public liquidityInvestmentShare = 5000; // 50.00%
 	uint256 public developerComissionRate = 100; // with _FACTOR = 10000, it means the comission rate is 1.00% and can be changed to a minimum of 0.01%
-	uint256 public checkerComissionRate = developerComissionRate.div(5);
+	uint256 public checkerComissionRate = 20; // 0.20%
 	uint256 public totalProfit;
 
 	mapping (address => uint256) private _balances;
@@ -136,15 +139,13 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 			if (potentialProfitPerAccount(sender) > 0 && _currentProfitSpent[sender] < potentialProfitPerAccount(sender)) {
 				uint256 profitSpendable = potentialProfitPerAccount(sender).sub(_currentProfitSpent[sender]);
 				if (amount <= profitSpendable) {
-					// Transfer only profit or part of it for desired amount
+					// Transfer only profit or part of it for the desired amount
 					_currentProfitSpent[sender] = _currentProfitSpent[sender].add(amount);
-					_totalSpendableProfit = _totalSpendableProfit.sub(amount);
 					_totalInvestedSupply = _totalInvestedSupply.add(amount);
 				} else {
-					// Transfer all profit and part of balance for desired amount
+					// Transfer all profit and part of balance for the desired amount
 					uint256 spendableDifference = amount.sub(profitSpendable);
 					_currentProfitSpent[sender] = _currentProfitSpent[sender].add(profitSpendable);
-					_totalSpendableProfit = _totalSpendableProfit.sub(profitSpendable);
 					_totalInvestedSupply = _totalInvestedSupply.add(profitSpendable);
 					_balances[sender] = _balances[sender].sub(spendableDifference);
 					// Calculate new profit spent in order to allow the sender to continue participating in the next profit cycles, regularly
@@ -154,7 +155,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 				_balances[sender] = senderBalance.sub(amount);
 			}
 
-			// To avoid the recipient be able to spend an inexistent profit we consider he already spent the current claimable profit
+			// To avoid the recipient be able to spend an unavailable or inexistent profit we consider he already spent the current claimable profit
 			// He will be able to earn profit in the next cycle, after the call of receiveProfit() function
 			if (_balances[recipient] == 0) {
 				_balances[recipient] = _balances[recipient].add(amount);
@@ -166,6 +167,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 				_currentProfitSpent[recipient] = currentSpendableProfitRecipient.sub(previousSpendableProfitRecipient);
 			}
 
+			checkForProfit();
 			emit Transfer(sender, recipient, amount);
 	}
 
@@ -190,11 +192,9 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 				uint256 profitSpendable = potentialProfitPerAccount(account).sub(_currentProfitSpent[account]);
 				if (amount <= profitSpendable) {
 					_currentProfitSpent[account] = _currentProfitSpent[account].add(amount);
-					_totalSpendableProfit = _totalSpendableProfit.sub(amount);
 				} else {
 					uint256 spendableDifference = amount.sub(profitSpendable);
 					_currentProfitSpent[account] = _currentProfitSpent[account].add(profitSpendable);
-					_totalSpendableProfit = _totalSpendableProfit.sub(profitSpendable);
 					_balances[account] = _balances[account].sub(spendableDifference);
 					_totalInvestedSupply = _totalInvestedSupply.sub(spendableDifference);
 					// Calculate new profit spent in order to allow the sender investor to continue participating in the next profit cycles
@@ -204,7 +204,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 				_balances[account] = burnBalance.sub(amount);
 			}
 			_totalSupply = _totalSupply.sub(amount);
-
+			checkForProfit();
 			emit Burn(account, address(0), amount);
 	}
 
@@ -228,7 +228,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 				return (potentialBalanceOf(account).sub(_currentProfitSpent[account]));
 	}
 
-	function potentialBalanceOf(address account) public view return(uint256) {
+	function potentialBalanceOf(address account) public view returns(uint256) {
 		return _balances[account].add(potentialProfitPerAccount(account));
 	}
 
@@ -259,7 +259,7 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 			0, // slippage is unavoidable
 			address(0),
 			block.timestamp
-		); { return true; } catch { return false; }
+		) { return true; } catch { return false; }
 	}
 
 	function _addLiquidityDsrSdr(uint256 dsrTokenAmount, uint256 sdrTokenAmount) private returns(bool) {
@@ -282,46 +282,107 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 
 	// RESOURCE ALLOCATION STRATEGY - FOR EARNED PROFIT
 	function _allocateProfit() private {
-		// 1. Pay commission of the developer team
-		_chargeComission(address(this).balance.mul(developerComissionRate).div(_FACTOR));
+		uint256 profit = address(this).balance; // Assuming the profit was received as regular ETH instead of wrapped ETH
 
-		// 2. Allocate resources for the DSR/ETH LP
-		_addLiquidityDsrEth(balanceOf(address(this)), address(this).balance.mul(liquidityProfitShare).div(_FACTOR));
+		// 1. Calculate the amounts
+		uint256 checkComission = profit.mul(checkerComissionRate).div(_FACTOR);
+		uint256 devComission = profit.mul(developerComissionRate).div(_FACTOR);
+		uint256 liqLocked = profit.mul(liquidityProfitShare).div(_FACTOR);
 
-		// 3. Allocate resources for the Manager(s)
+		// 2. Separate the profit amount for checkers
+		profit = profit.sub(checkComission);
+		_chargeComissionCheck(checkComission);
+
+		// 3. Pay commission for the developer team
+		profit = profit.sub(devComission);
+		_chargeComissionDev(devComission);
+
+		// 4. Allocate resources for the DSR/ETH LP
+		profit = profit.sub(liqLocked.div(2));
+		uint256 dsrForEthAmount = liqLocked.div(2).mul(_getDsrEthPoolRate()); // DSR -> ETH
+		_mint(address(this), dsrForEthAmount);
+		_addLiquidityDsrEth(dsrForEthAmount, liqLocked.div(2)); // DSR + ETH
+
+		// 5. Allocate resources for the DSR/RSD LP and DSR/SDR LP - ETH remaining used for liquidity
+		profit = profit.sub(liqLocked.div(2));
+
+		_swapEthForRsd(liqLocked.div(2));
+		uint256 rsdAmount = _rsdToken.balanceOf(address(this));
+		uint256 dsrForRsdAmount = rsdAmount.mul(_getDsrRsdPoolRate()); // DSR -> RSD
+		_mint(address(this), dsrForRsdAmount);
+		_addLiquidityDsrRsd(dsrForRsdAmount, rsdAmount.div(2)); // DSR + RSD
+
+		rsdAmount = _rsdToken.balanceOf(address(this));
+
+		_swapRsdForSdr(rsdAmount);
+		uint256 sdrAmount = _sdrToken.balanceOf(address(this));
+		uint256 dsrForSdrAmount = sdrAmount.mul(_getDsrSdrPoolRate()); // DSR -> SDR
+		_mint(address(this), dsrForSdrAmount);
+		_addLiquidityDsrSdr(dsrForSdrAmount, sdrAmount); // DSR + SDR
+
+		// 6. Allocate remaining resources for the Manager(s)
 		if (managerAddresses.length > 0) {
-			uint256 share = address(this).balance.div(managerAddresses.length);
+			uint256 share = profit.div(managerAddresses.length);
 			for (uint256 i = 0; i < managerAddresses.length; i++) {
-				Manager manager = Manager(managerAddresses[i]);
-				manager.receiveResources{share}();
+				IManager manager = IManager(managerAddresses[i]);
+				manager.receiveResources{value: share}();
 			}
 		}
+
+		delete profit;
+		delete checkComission;
+		delete devComission;
+		delete liqLocked;
+		delete dsrForEthAmount;
+		delete rsdAmount;
+		delete dsrForRsdAmount;
+		delete sdrAmount;
+		delete dsrForSdrAmount;
 	}
 
 	// RESOURCE ALLOCATION STRATEGY - FOR INITIAL INVESTORS
 	function _allocateResources() private {
-		// 1. Pay commission of the developer team
-		_chargeComission(address(this).balance.mul(developerComissionRate).div(_FACTOR));
+		uint256 profit = address(this).balance;
 
-		// 2. Allocate resources for the DSR/ETH LP
-		_addLiquidityDsrEth(balanceOf(address(this)), address(this).balance.div(2));
+		// 1. Calculate the amounts
+		uint256 devComission = profit.mul(developerComissionRate).div(_FACTOR);
+		uint256 mainLiquidity = profit.mul(liquidityInvestmentShare).div(_FACTOR);
 
-		// 3. Allocate resources for the Manager(s)
+		// 2. Pay commission of the developer team
+		profit = profit.sub(devComission);
+		_chargeComissionDev(devComission);
+
+		// 3. Allocate resources for the DSR/ETH LP
+		profit = profit.sub(mainLiquidity);
+		_mint(address(this), mainLiquidity.mul(_getDsrEthPoolRate()));
+		_addLiquidityDsrEth(balanceOf(address(this)), mainLiquidity);
+
+		// 4. Allocate resources for the Manager(s)
 		if (managerAddresses.length > 0) {
-			uint256 share = address(this).balance.div(managerAddresses.length);
+			uint256 share = profit.div(managerAddresses.length);
 			for (uint256 i = 0; i < managerAddresses.length; i++) {
-				Manager manager = Manager(managerAddresses[i]);
-				manager.receiveResources{share}();
+				IManager manager = IManager(managerAddresses[i]);
+				manager.receiveResources{value: share}();
 			}
 		}
+
+		delete profit;
+		delete devComission;
+		delete mainLiquidity;
 	}
 
-	function _chargeComission(uint256 amount) private {
+	function _chargeComissionCheck(uint256 amount) private {
+		_mint(_msgSender(), amount.mul(_getDsrEthPoolRate()).div(10));
+		address payable checker = payable(_msgSender());
+		checker.transfer(amount);
+	}
+
+	function _chargeComissionDev(uint256 amount) private {
 		// check if the commission wallet is defined
 		DsrHelper developerComissionWallet;
 		if (developerComissionAddress == address(0)) {
 			developerComissionWallet = new DsrHelper(owner());
-			developerComissionWallet = address(developerComissionWallet);
+			developerComissionAddress = payable(address(developerComissionWallet));
 		}
 		developerComissionAddress.transfer(amount);
 	}
@@ -352,10 +413,10 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		if (dsrSdrPair == address(0)) {
 			return 1;
 		} else {
-			uint256 sdrBalance = _sdrToken.balanceOf(dsrSdrPair);
 			uint256 dsrBalance = balanceOf(dsrSdrPair);
-			dsrBalance = dsrBalance == 0 ? 1 : dsrBalance;
-			return (sdrBalance.div(dsrBalance));
+			uint256 sdrBalance = _sdrToken.balanceOf(dsrSdrPair);
+			sdrBalance = sdrBalance == 0 ? 1 : sdrBalance;
+			return (dsrBalance.div(sdrBalance));
 		}
 	}
 
@@ -370,10 +431,28 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		}
 	}
 
-	function _splitDividend(uint256 dividendAmount) private {
-		totalProfit = totalProfit.add(dividendAmount);
-		_totalSpendableProfit = _totalSpendableProfit.add(dividendAmount);
-		_totalSupply = _totalSupply.add(dividendAmount);
+	function _swapEthForRsd(uint256 ethAmount) private returns(bool) {
+		// need to check if the helper address is initialized
+		DsrHelper dsrHelper;
+		if (dsrHelperAddress == address(0)) {
+			dsrHelper = new DsrHelper(address(this));
+			dsrHelperAddress = address(dsrHelper);
+		}
+
+		// generate the pair path of ETH -> RSD on exchange router contract
+		address[] memory path = new address[](2);
+		path[0] = address(_wEth);
+		path[1] = rsdTokenAddress;
+
+		IERC20(address(_wEth)).approve(address(_exchangeRouter), ethAmount);
+
+		try _exchangeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+		 	ethAmount,
+			0, // accept any amount of RSD
+			path,
+			dsrHelperAddress,
+			block.timestamp
+		) { return true; } catch { return false; }
 	}
 
 	function _swapRsdForDsr(uint256 tokenAmount) private returns(bool) {
@@ -389,11 +468,35 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		path[0] = rsdTokenAddress;
 		path[1] = address(this);
 
-		_approve(address(this), address(_exchangeRouter), tokenAmount);
+		_rsdToken.approve(address(_exchangeRouter), tokenAmount);
 
 		try _exchangeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
 			tokenAmount,
-			0, // accept any amount of RSD
+			0, // accept any amount of DSR
+			path,
+			dsrHelperAddress,
+			block.timestamp
+		) { return true; } catch { return false; }
+	}
+
+	function _swapRsdForSdr(uint256 tokenAmount) private returns(bool) {
+		// need to check if the helper address is initialized
+		DsrHelper dsrHelper;
+		if (dsrHelperAddress == address(0)) {
+			dsrHelper = new DsrHelper(address(this));
+			dsrHelperAddress = address(dsrHelper);
+		}
+
+		// generate the pair path of RSD -> SDR on exchange router contract
+		address[] memory path = new address[](2);
+		path[0] = rsdTokenAddress;
+		path[1] = sdrTokenAddress;
+
+		_rsdToken.approve(address(_exchangeRouter), tokenAmount);
+
+		try _exchangeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+			tokenAmount,
+			0, // accept any amount of SDR
 			path,
 			dsrHelperAddress,
 			block.timestamp
@@ -406,11 +509,10 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 	}
 
 	function checkForProfit() public {
-		// TODO: reward msg.sender of this function if there is some profit
-	}
-
-	function getAvailableTotalProfit() public view returns(uint256) {
-		return _totalSpendableProfit;
+		for (uint256 i = 0; i < managerAddresses.length; i++) {
+			IManager manager = IManager(managerAddresses[i]);
+			manager.checkForProfit(); // It must check profit and call the receiveProfit() function after
+		}
 	}
 
 	function initializeTokenContract(
@@ -450,8 +552,6 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 			if (_sdrRsdPair == address(0))
 				_sdrRsdPair = IUniswapV2Factory(exchangeRouter.factory()).createPair(sdrTokenAddress, rsdTokenAddress);
 			sdrRsdPair = _sdrRsdPair;
-
-			address[] managerAddresses = new address[];
 	}
 
 	function invest(address investor) public payable {
@@ -464,12 +564,11 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		if (msg.value > 0) {
 			_mint(investor, msg.value.mul(rate));
 			_totalInvestedSupply = _totalInvestedSupply.add(msg.value.mul(rate));
-			_mint(address(this), msg.value.mul(rate).div(2));
+			_allocateResources();
 		}
-		_allocateResources();
 	}
 
-	function isManagerAdded(address manager) public returns(bool) {
+	function isManagerAdded(address manager) public view returns(bool) {
 		for (uint256 i = 0; i < managerAddresses.length; i++)
 			if (manager == managerAddresses[i])
 				return true;
@@ -489,27 +588,22 @@ contract DeFiSystemReference is Context, ERC20("DeFi System for Reference", "DSR
 		return randomWalletAddress;
 	}
 
-	// TODO: adjust the percent share
-	function receiveProfit() public payable {
+	function receiveProfit() external virtual override payable {
 		if (msg.value > 0) {
 			uint256 rate = _getDsrEthPoolRate();
-			// it means the contract has enough DSR to send to the DSR/ETH LP
-			if (balanceOf(address(this)) <= msg.value.mul(rate).div(2)) {
-				uint256 balanceDiff = msg.value.mul(rate).div(2).sub(balanceOf(address(this)));
-				_mint(address(this), balanceDiff);
-			}
-			_splitDividend(msg.value.mul(rate).div(2));
+			totalProfit = totalProfit.add(msg.value.mul(rate));
+			_totalSupply = _totalSupply.add(msg.value.mul(rate));
+			delete rate;
 			_allocateProfit();
 		}
 	}
 
 	function removeManager(address manager) public onlyOwner {
 		require(isManagerAdded(manager), "DSR: manager informed does not exist in this contract anymore");
-		address[] newManagerAddresses = new address[];
+		address[] storage newManagerAddresses;
 		for (uint256 i = 0; i < managerAddresses.length; i++) {
-			if (manager != managerAddresses[i]) {
+			if (manager != managerAddresses[i])
 				newManagerAddresses.push(managerAddresses[i]);
-			}
 		}
 		managerAddresses = newManagerAddresses;
 	}
