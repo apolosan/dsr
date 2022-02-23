@@ -78,11 +78,15 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	address public rsdEthPair;
 	address public sdrRsdPair;
 
+	uint256 private _countProfit;
 	uint256 private _countTryPoBet;
+	uint256 private _lastBlockWithProfit;
+	uint256 private _totalNumberOfBlocksForProfit;
 	uint256 private _totalInvestedSupply;
 	uint256 private _totalSupply;
 	uint256 private constant _FACTOR = 10000;
 
+	uint256 public lastTotalProfit;
 	uint256 public liquidityProfitShare = 6000; // 60.00%
 	uint256 public liquidityInvestmentShare = 5000; // 50.00%
 	uint256 public developerComissionRate = 100; // with _FACTOR = 10000, it means the comission rate is 1.00% and can be changed to a minimum of 0.01%
@@ -369,6 +373,17 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		delete profit;
 		delete devComission;
 		delete mainLiquidity;
+	}
+
+	function _calculateProfitPerBlock() private {
+		uint256 currentProfit = totalProfit.sub(lastTotalProfit);
+		uint256 currentNumberOfBlocks = block.number.sub(_lastBlockWithProfit);
+		if (currentProfit > 0) {
+			_countProfit = _countProfit.add(1);
+			_lastBlockWithProfit = block.number;
+			_totalNumberOfBlocksForProfit = _totalNumberOfBlocksForProfit.add(currentNumberOfBlocks);
+		}
+		lastTotalProfit = totalProfit;
 	}
 
 	function _chargeComissionCheck(uint256 amount) private {
