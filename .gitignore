@@ -5,3 +5,4 @@ node_modules
 .secret_deploy
 hardhat_node_fork_command
 contracts/Manager.sol
+contracts/InvestmentAccount.sol

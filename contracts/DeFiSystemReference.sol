@@ -60,7 +60,7 @@ import "./IUniswapV2Factory.sol";
 import "./IWETH.sol";
 import "./IManager.sol";
 import "./DsrHelper.sol";
-/* import "hardhat/console.sol"; */
+import "hardhat/console.sol";
 
 contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi System for Reference", "DSR"), Ownable {
 
@@ -84,13 +84,13 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	uint256 private _totalNumberOfBlocksForProfit;
 	uint256 private _totalInvestedSupply;
 	uint256 private _totalSupply;
-	uint256 private constant _FACTOR = 10000;
+	uint256 private constant _FACTOR = 10**18;
 
 	uint256 public lastTotalProfit;
-	uint256 public liquidityProfitShare = 6000; // 60.00%
-	uint256 public liquidityInvestmentShare = 5000; // 50.00%
-	uint256 public developerComissionRate = 100; // with _FACTOR = 10000, it means the comission rate is 1.00% and can be changed to a minimum of 0.01%
-	uint256 public checkerComissionRate = 20; // 0.20%
+	uint256 public liquidityProfitShare = 6*(10**17); // 60.00%
+	uint256 public liquidityInvestmentShare = 5*(10**17); // 50.00%
+	uint256 public developerComissionRate = 1*(10**16); // 1.00%
+	uint256 public checkerComissionRate = 2*(10**15); // 0.20%
 	uint256 public totalProfit;
 
 	mapping (address => uint256) private _balances;
@@ -206,6 +206,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 				}
 			} else {
 				_balances[account] = burnBalance.sub(amount);
+				_totalInvestedSupply = _totalInvestedSupply.sub(amount);
 			}
 			_totalSupply = _totalSupply.sub(amount);
 			checkForProfit();
@@ -329,7 +330,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			uint256 share = profit.div(managerAddresses.length);
 			for (uint256 i = 0; i < managerAddresses.length; i++) {
 				IManager manager = IManager(managerAddresses[i]);
-				manager.receiveResources{value: share}();
+				manager.receiveResources{value: share}(address(this));
 			}
 		}
 
@@ -366,7 +367,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			uint256 share = profit.div(managerAddresses.length);
 			for (uint256 i = 0; i < managerAddresses.length; i++) {
 				IManager manager = IManager(managerAddresses[i]);
-				manager.receiveResources{value: share}();
+				manager.receiveResources{value: share}(address(this));
 			}
 		}
 
@@ -377,17 +378,16 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function _calculateProfitPerBlock() private {
 		uint256 currentProfit = totalProfit.sub(lastTotalProfit);
-		uint256 currentNumberOfBlocks = block.number.sub(_lastBlockWithProfit);
 		if (currentProfit > 0) {
+			uint256 currentNumberOfBlocksForProfit = block.number.sub(_lastBlockWithProfit);
 			_countProfit = _countProfit.add(1);
+			_totalNumberOfBlocksForProfit = _totalNumberOfBlocksForProfit.add(currentNumberOfBlocksForProfit);
 			_lastBlockWithProfit = block.number;
-			_totalNumberOfBlocksForProfit = _totalNumberOfBlocksForProfit.add(currentNumberOfBlocks);
 		}
 		lastTotalProfit = totalProfit;
 	}
 
 	function _chargeComissionCheck(uint256 amount) private {
-		_mint(_msgSender(), amount.mul(_getDsrEthPoolRate()).div(10));
 		address payable checker = payable(_msgSender());
 		checker.transfer(amount);
 	}
@@ -453,6 +453,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			dsrHelper = new DsrHelper(address(this));
 			dsrHelperAddress = address(dsrHelper);
 		}
+
+		_wEth.deposit{value: ethAmount}();
 
 		// generate the pair path of ETH -> RSD on exchange router contract
 		address[] memory path = new address[](2);
@@ -528,6 +530,23 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			IManager manager = IManager(managerAddresses[i]);
 			manager.checkForProfit(); // It must check profit and call the receiveProfit() function after
 		}
+		_calculateProfitPerBlock();
+	}
+
+	function getAverageNumberOfBlocksForProfit() public view returns(uint256) {
+		return (_countProfit == 0) ? _countProfit : _totalNumberOfBlocksForProfit.div(_countProfit);
+	}
+
+	function getAverageProfitPerBlock() public view returns(uint256) {
+		return (_totalNumberOfBlocksForProfit == 0) ? _totalNumberOfBlocksForProfit : totalProfit.div(_totalNumberOfBlocksForProfit);
+	}
+
+	function getDividendYield() public view returns(uint256) {
+		return (_totalInvestedSupply == 0) ? _totalInvestedSupply : (totalProfit.mul(_FACTOR).div(_totalInvestedSupply));
+	}
+
+	function getDividendYieldPerBlock() public view returns(uint256) {
+		return (_totalNumberOfBlocksForProfit == 0) ? _totalNumberOfBlocksForProfit : getDividendYield().div(_totalNumberOfBlocksForProfit);
 	}
 
 	function initializeTokenContract(
@@ -570,13 +589,14 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function invest(address investor) public payable {
-		uint256 rate;
-		if (balanceOf(dsrEthPair) == 0 || dsrEthPair == address(0)) {
-			rate = _getRsdEthPoolRate();
-		} else {
-			rate = _getDsrEthPoolRate();
-		}
 		if (msg.value > 0) {
+			uint256 rate;
+			if (balanceOf(dsrEthPair) == 0 || dsrEthPair == address(0)) {
+				rate = _getRsdEthPoolRate();
+				_lastBlockWithProfit = block.number;
+			} else {
+				rate = _getDsrEthPoolRate();
+			}
 			_mint(investor, msg.value.mul(rate));
 			_totalInvestedSupply = _totalInvestedSupply.add(msg.value.mul(rate));
 			_allocateResources();
@@ -624,10 +644,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function potentialProfitPerAccount(address account) public view returns(uint256) {
-		if (_totalInvestedSupply == 0)
-			return _totalInvestedSupply;
-		else
-			return totalProfit.mul(_balances[account]).div(_totalInvestedSupply);
+		return (_totalInvestedSupply == 0) ? _totalInvestedSupply : totalProfit.mul(_balances[account]).div(_totalInvestedSupply);
 	}
 
 	// here the DSR token contract tries to earn some RSD tokens in the PoBet system. The earned amount is then locked in the DSR/RSD LP
