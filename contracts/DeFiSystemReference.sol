@@ -1,8 +1,18 @@
 // SPDX-License-Identifier: MIT
 /*
-╔╦╗┌─┐╔═╗┬  ╔═╗┬ ┬┌─┐┌┬┐┌─┐┌┬┐  ┌─┐┌─┐┬─┐  ╦═╗┌─┐┌─┐┌─┐┬─┐┌─┐┌┐┌┌─┐┌─┐       ╔╦╗╔═╗╦═╗
- ║║├┤ ╠╣ │  ╚═╗└┬┘└─┐ │ ├┤ │││  ├┤ │ │├┬┘  ╠╦╝├┤ ├┤ ├┤ ├┬┘├┤ ││││  ├┤   ───   ║║╚═╗╠╦╝
-═╩╝└─┘╚  ┴  ╚═╝ ┴ └─┘ ┴ └─┘┴ ┴  └  └─┘┴└─  ╩╚═└─┘└  └─┘┴└─└─┘┘└┘└─┘└─┘       ═╩╝╚═╝╩╚═
+██████╗ ███████╗███████╗██╗    ███████╗██╗   ██╗███████╗████████╗███████╗███╗   ███╗
+██╔══██╗██╔════╝██╔════╝██║    ██╔════╝╚██╗ ██╔╝██╔════╝╚══██╔══╝██╔════╝████╗ ████║
+██║  ██║█████╗  █████╗  ██║    ███████╗ ╚████╔╝ ███████╗   ██║   █████╗  ██╔████╔██║
+██║  ██║██╔══╝  ██╔══╝  ██║    ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║
+██████╔╝███████╗██║     ██║    ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║
+╚═════╝ ╚══════╝╚═╝     ╚═╝    ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝
+
+███████╗ ██████╗ ██████╗     ██████╗ ███████╗███████╗███████╗██████╗ ███████╗███╗   ██╗ ██████╗███████╗
+██╔════╝██╔═══██╗██╔══██╗    ██╔══██╗██╔════╝██╔════╝██╔════╝██╔══██╗██╔════╝████╗  ██║██╔════╝██╔════╝
+█████╗  ██║   ██║██████╔╝    ██████╔╝█████╗  █████╗  █████╗  ██████╔╝█████╗  ██╔██╗ ██║██║     █████╗
+██╔══╝  ██║   ██║██╔══██╗    ██╔══██╗██╔══╝  ██╔══╝  ██╔══╝  ██╔══██╗██╔══╝  ██║╚██╗██║██║     ██╔══╝
+██║     ╚██████╔╝██║  ██║    ██║  ██║███████╗██║     ███████╗██║  ██║███████╗██║ ╚████║╚██████╗███████╗
+╚═╝      ╚═════╝ ╚═╝  ╚═╝    ╚═╝  ╚═╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 Developed by systemdefi.crypto and rsd.cash teams
 ---------------------------------------------------------------------------------------
 DeFi System for Reference (DSR), is the third token of the triad system RSD | SDR | DSR. Also, it is your automated
@@ -17,12 +27,11 @@ you are in profit and can trade these additional tokens in exchange for native c
 liquidity to get part of your investment back (and your profit as well) once the minted amount locked in LP is worth
 the same or more than the invested supply, initially.
 
-Suppose this smart contract is deployed on Binance Smart Chain (BSC Network). You send 1 BNB to the DSR token smart
-contract and receive the correspondent amount in DSR tokens (1000 DSR for example, according to the current rate of
-DSR/BNB LP). That 1 BNB is splitted into 2 parts (not necessarily equal). The first part is locked in the DSR/BNB LP,
-following the rate of 500 DSR minted for 0.5 BNB (hipotetically). The second part is sent to managers, which are smart
-contracts developed to automatically invest that remaining 0.5 BNB in some selected DeFi platforms. Each manager has
-its own investment strategy.
+Suppose this smart contract is deployed on Fantom Network. You send 100 FTM to the DSR token smart contract and receive
+the correspondent amount in DSR tokens (1000 DSR for example, according to the current rate of DSR/FTM LP). That 100 FTM
+is splitted into 2 parts (not necessarily equal). The first part is locked in the DSR/FTM LP, following the rate of 500
+DSR minted for 50 FTM (hipotetically). The second part is sent to managers, which are smart contracts developed to
+automatically invest that remaining 50 FTM in some selected DeFi platforms. Each manager has its own investment strategy.
 
 The second part of the investment is not redeemable. However, the DSR managers will be always providing dividend yield
 for DSR token holders on a regular basis, while the network and the selected DeFi platform exists (forever!).
@@ -42,9 +51,16 @@ them, and the only way to do this is by directly investing in the DSR smart cont
 liquidity and more money for the managers to invest...
 
 Even if you are some of those investors which may choose to not take the risk of directly interacting with the contract
-and having half of their investment locked in, you can opt for buy DSR from the DSR/BNB LP instead. This is also good,
+and having half of their investment locked in, you can opt for buy DSR from the DSR/FTM LP instead. This is also good,
 once it will help to increase demand for the asset and push its price upforward. You still keep earning dividends for
 your tokens, proportionally.
+
+Additionally, investors also receive SDR tokens as reward for their investment. The SDR tokens received as reward were
+previously sent to the DSR smart contract in the terms of the SDR token 'infinite farm system', which is a system
+developed to reward investors who contribute to our platform (RSD + SDR + DSR) but without mint new SDR tokens.
+
+System DeFi for Reference (SDR) is an utility token used for savings, only exchangeable for RSD and DSR.
+Reference System for DeFi (RSD) is an intelligent token aimed for trading, gambling and also to reward miners.
 ---------------------------------------------------------------------------------------
 */
 pragma solidity >=0.8.0;
@@ -82,15 +98,16 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	uint256 private _countTryPoBet;
 	uint256 private _lastBlockWithProfit;
 	uint256 private _totalNumberOfBlocksForProfit;
-	uint256 private _totalInvestedSupply;
 	uint256 private _totalSupply;
 	uint256 private constant _FACTOR = 10**18;
+	uint256 private constant _MAGNITUDE = 2**128;
 
 	uint256 public lastTotalProfit;
 	uint256 public liquidityProfitShare = 6*(10**17); // 60.00%
 	uint256 public liquidityInvestmentShare = 5*(10**17); // 50.00%
 	uint256 public developerComissionRate = 1*(10**16); // 1.00%
 	uint256 public checkerComissionRate = 2*(10**15); // 0.20%
+	uint256 public dividendRate;
 	uint256 public totalProfit;
 
 	mapping (address => uint256) private _balances;
@@ -109,6 +126,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	event Burn(address from, address zero, uint256 amount);
 	event Mint(address zero, address account, uint256 amount);
+	event ProfitReceived(uint256 amount);
 
 	modifier lockTryPoBet {
 		_countTryPoBet = _countTryPoBet.add(1);
@@ -145,12 +163,10 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 				if (amount <= profitSpendable) {
 					// Transfer only profit or part of it for the desired amount
 					_currentProfitSpent[sender] = _currentProfitSpent[sender].add(amount);
-					_totalInvestedSupply = _totalInvestedSupply.add(amount);
 				} else {
 					// Transfer all profit and part of balance for the desired amount
 					uint256 spendableDifference = amount.sub(profitSpendable);
 					_currentProfitSpent[sender] = _currentProfitSpent[sender].add(profitSpendable);
-					_totalInvestedSupply = _totalInvestedSupply.add(profitSpendable);
 					_balances[sender] = _balances[sender].sub(spendableDifference);
 					// Calculate new profit spent in order to allow the sender to continue participating in the next profit cycles, regularly
 					_currentProfitSpent[sender] = potentialProfitPerAccount(sender);
@@ -200,13 +216,11 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 					uint256 spendableDifference = amount.sub(profitSpendable);
 					_currentProfitSpent[account] = _currentProfitSpent[account].add(profitSpendable);
 					_balances[account] = _balances[account].sub(spendableDifference);
-					_totalInvestedSupply = _totalInvestedSupply.sub(spendableDifference);
 					// Calculate new profit spent in order to allow the sender investor to continue participating in the next profit cycles
 					_currentProfitSpent[account] = potentialProfitPerAccount(account);
 				}
 			} else {
 				_balances[account] = burnBalance.sub(amount);
-				_totalInvestedSupply = _totalInvestedSupply.sub(amount);
 			}
 			_totalSupply = _totalSupply.sub(amount);
 			checkForProfit();
@@ -311,7 +325,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		// 5. Allocate resources for the DSR/RSD LP and DSR/SDR LP - ETH remaining used for liquidity
 		profit = profit.sub(liqLocked.div(2));
 
-		_swapEthForRsd(liqLocked.div(2));
+		if (_swapEthForRsd(liqLocked.div(2)))
+			DsrHelper(dsrHelperAddress).withdrawTokensSent(rsdTokenAddress);
 		uint256 rsdAmount = _rsdToken.balanceOf(address(this));
 		uint256 dsrForRsdAmount = rsdAmount.mul(_getDsrRsdPoolRate()); // DSR -> RSD
 		_mint(address(this), dsrForRsdAmount);
@@ -319,8 +334,11 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 		rsdAmount = _rsdToken.balanceOf(address(this));
 
-		_swapRsdForSdr(rsdAmount);
-		uint256 sdrAmount = _sdrToken.balanceOf(address(this));
+		uint256 previousSdrAmount = _sdrToken.balanceOf(address(this));
+		if (_swapRsdForSdr(rsdAmount))
+			DsrHelper(dsrHelperAddress).withdrawTokensSent(sdrTokenAddress);
+		uint256 currentSdrAmount = _sdrToken.balanceOf(address(this));
+		uint256 sdrAmount = currentSdrAmount.sub(previousSdrAmount);
 		uint256 dsrForSdrAmount = sdrAmount.mul(_getDsrSdrPoolRate()); // DSR -> SDR
 		_mint(address(this), dsrForSdrAmount);
 		_addLiquidityDsrSdr(dsrForSdrAmount, sdrAmount); // DSR + SDR
@@ -341,6 +359,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		delete dsrForEthAmount;
 		delete rsdAmount;
 		delete dsrForRsdAmount;
+		delete previousSdrAmount;
+		delete currentSdrAmount;
 		delete sdrAmount;
 		delete dsrForSdrAmount;
 	}
@@ -446,6 +466,14 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		}
 	}
 
+	function _rewardSdrInfiniteFarm(address investor, uint256 amountInvested) private {
+		uint256 sdrBalance = _sdrToken.balanceOf(address(this));
+		if (sdrBalance > 0) {
+			uint256 amountToReward = sdrBalance.mul(amountInvested).div(_totalSupply);
+			_sdrToken.transfer(investor, amountToReward);
+		}
+	}
+
 	function _swapEthForRsd(uint256 ethAmount) private returns(bool) {
 		// need to check if the helper address is initialized
 		DsrHelper dsrHelper;
@@ -542,7 +570,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function getDividendYield() public view returns(uint256) {
-		return (_totalInvestedSupply == 0) ? _totalInvestedSupply : (totalProfit.mul(_FACTOR).div(_totalInvestedSupply));
+		return (_totalSupply == 0) ? _totalSupply : (totalProfit.mul(_FACTOR).div(_totalSupply));
 	}
 
 	function getDividendYieldPerBlock() public view returns(uint256) {
@@ -597,8 +625,9 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			} else {
 				rate = _getDsrEthPoolRate();
 			}
-			_mint(investor, msg.value.mul(rate));
-			_totalInvestedSupply = _totalInvestedSupply.add(msg.value.mul(rate));
+			uint256 amountInvested = (msg.value).mul(rate);
+			_mint(investor, amountInvested);
+			_rewardSdrInfiniteFarm(investor, amountInvested);
 			_allocateResources();
 		}
 	}
@@ -626,10 +655,14 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	function receiveProfit() external virtual override payable {
 		if (msg.value > 0) {
 			uint256 rate = _getDsrEthPoolRate();
-			totalProfit = totalProfit.add(msg.value.mul(rate));
-			_totalSupply = _totalSupply.add(msg.value.mul(rate));
-			delete rate;
+			dividendRate = dividendRate.add((msg.value).mul(rate).mul(_MAGNITUDE).div(_totalSupply));
+			totalProfit = totalProfit.add((msg.value).mul(rate));
+			_totalSupply = _totalSupply.add((msg.value).mul(rate));
+
 			_allocateProfit();
+			emit ProfitReceived((msg.value).mul(rate));
+
+			delete rate;
 		}
 	}
 
@@ -644,7 +677,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function potentialProfitPerAccount(address account) public view returns(uint256) {
-		return (_totalInvestedSupply == 0) ? _totalInvestedSupply : totalProfit.mul(_balances[account]).div(_totalInvestedSupply);
+		return (_balances[account].mul(dividendRate).div(_MAGNITUDE));
 	}
 
 	// here the DSR token contract tries to earn some RSD tokens in the PoBet system. The earned amount is then locked in the DSR/RSD LP
@@ -661,7 +694,6 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			if (rsdBalance < _rsdToken.balanceOf(address(this))) {
 				uint256 earnedRsd = _rsdToken.balanceOf(address(this)).sub(rsdBalance);
 
-				DsrHelper dsrHelper;
 				if (balanceOf(address(this)) == 0) {
 					// DSR amount in DSR contract and in DSR/RSD LP is both 0. In this case we mint DSR and deposit initial liquidity into the DSR/RSD LP with the earned RSD from PoBet, with the corresponding amount of DSR following the rate of RSD in the RSD/ETH LP
 					if (balanceOf(dsrRsdPair) == 0) {
@@ -670,8 +702,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 					} else {
 						// DSR amount in DSR contract is 0, but we have some DSR in DSR/RSD LP. Here we buy DSR with half of earned RSD from PoBet and deposit them into the DSR/RSD LP
 						if (_swapRsdForDsr(earnedRsd.div(2))) {
-							dsrHelper = DsrHelper(dsrHelperAddress);
-							dsrHelper.withdrawTokensSent(address(this));
+							DsrHelper(dsrHelperAddress).withdrawTokensSent(address(this));
 							_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd.div(2));
 						}
 					}
