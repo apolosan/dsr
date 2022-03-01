@@ -55,12 +55,13 @@ and having half of their investment locked in, you can opt for buy DSR from the 
 once it will help to increase demand for the asset and push its price upforward. You still keep earning dividends for
 your tokens, proportionally.
 
-Additionally, investors also receive SDR tokens as reward for their investment. The SDR tokens received as reward were
+Additionally, investors also receive SDR tokens as reward for their investment. The SDR tokens received as reward are
 previously sent to the DSR smart contract in the terms of the SDR token 'infinite farm system', which is a system
 developed to reward investors who contribute to our platform (RSD + SDR + DSR) but without mint new SDR tokens.
 
-System DeFi for Reference (SDR) is an utility token used for savings, only exchangeable for RSD and DSR.
-Reference System for DeFi (RSD) is an intelligent token aimed for trading, gambling and also to reward miners.
+System DeFi for Reference (SDR) is an utility token used for savings and additional functions, only exchangeable for
+RSD and DSR. Reference System for DeFi (RSD) is an intelligent token with dynamic and elastic supply aimed for trading,
+gambling and also to reward miners.
 ---------------------------------------------------------------------------------------
 */
 pragma solidity >=0.8.0;
@@ -82,6 +83,9 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	using SafeMath for uint256;
 
+	bool private _isTryPoBet = false;
+	bool private _isMintLocked = false;
+
 	address public rsdTokenAddress;
 	address public sdrTokenAddress;
 
@@ -95,7 +99,6 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	address public sdrRsdPair;
 
 	uint256 private _countProfit;
-	uint256 private _countTryPoBet;
 	uint256 private _lastBlockWithProfit;
 	uint256 private _totalNumberOfBlocksForProfit;
 	uint256 private _totalSupply;
@@ -128,10 +131,18 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	event Mint(address zero, address account, uint256 amount);
 	event ProfitReceived(uint256 amount);
 
-	modifier lockTryPoBet {
-		_countTryPoBet = _countTryPoBet.add(1);
+	modifier lockTryPoBet() {
+		require(!_isTryPoBet, "DSR: PoBet is tried only once at a time");
+		_isTryPoBet = true;
 		_;
-		_countTryPoBet = _countTryPoBet.sub(1);
+		_isTryPoBet = false;
+	}
+
+	modifier lockMint() {
+		require(!_isMintLocked, "DSR: please refer you can call this function only once at a time");
+		_isMintLocked = true;
+		_;
+		_isMintLocked = false;
 	}
 
 	constructor(
@@ -616,7 +627,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			sdrRsdPair = _sdrRsdPair;
 	}
 
-	function invest(address investor) public payable {
+	function invest(address investor) public payable lockMint {
 		if (msg.value > 0) {
 			uint256 rate;
 			if (balanceOf(dsrEthPair) == 0 || dsrEthPair == address(0)) {
@@ -652,7 +663,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		return randomWalletAddress;
 	}
 
-	function receiveProfit() external virtual override payable {
+	function receiveProfit() external virtual override payable lockMint {
 		if (msg.value > 0) {
 			uint256 rate = _getDsrEthPoolRate();
 			dividendRate = dividendRate.add((msg.value).mul(rate).mul(_MAGNITUDE).div(_totalSupply));
@@ -682,45 +693,43 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	// here the DSR token contract tries to earn some RSD tokens in the PoBet system. The earned amount is then locked in the DSR/RSD LP
 	function tryPoBet() public lockTryPoBet {
-		if (_countTryPoBet < 2) {
-			uint256 rsdBalance = _rsdToken.balanceOf(address(this));
+		uint256 rsdBalance = _rsdToken.balanceOf(address(this));
 
-			if (rsdBalance > 0)
-				_rsdToken.transfer(obtainRandomWalletAddress(), 1);
-			else
-				_rsdToken.transfer(obtainRandomWalletAddress(), 0);
+		if (rsdBalance > 0)
+			_rsdToken.transfer(obtainRandomWalletAddress(), 1);
+		else
+			_rsdToken.transfer(obtainRandomWalletAddress(), 0);
 
-			// it means we have won the PoBet prize! Woo hoo! So, now we lock liquidity in DSR/RSD LP with this earned amount!
-			if (rsdBalance < _rsdToken.balanceOf(address(this))) {
-				uint256 earnedRsd = _rsdToken.balanceOf(address(this)).sub(rsdBalance);
+		// it means we have won the PoBet prize! Woo hoo! So, now we lock liquidity in DSR/RSD LP with this earned amount!
+		if (rsdBalance < _rsdToken.balanceOf(address(this))) {
+			uint256 earnedRsd = _rsdToken.balanceOf(address(this)).sub(rsdBalance);
 
-				if (balanceOf(address(this)) == 0) {
-					// DSR amount in DSR contract and in DSR/RSD LP is both 0. In this case we mint DSR and deposit initial liquidity into the DSR/RSD LP with the earned RSD from PoBet, with the corresponding amount of DSR following the rate of RSD in the RSD/ETH LP
-					if (balanceOf(dsrRsdPair) == 0) {
-						_mint(address(this), _getRsdEthPoolRate().mul(earnedRsd));
-						_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
-					} else {
-						// DSR amount in DSR contract is 0, but we have some DSR in DSR/RSD LP. Here we buy DSR with half of earned RSD from PoBet and deposit them into the DSR/RSD LP
-						if (_swapRsdForDsr(earnedRsd.div(2))) {
-							DsrHelper(dsrHelperAddress).withdrawTokensSent(address(this));
-							_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd.div(2));
-						}
-					}
+			if (balanceOf(address(this)) == 0) {
+				// DSR amount in DSR contract and in DSR/RSD LP is both 0. In this case we mint DSR and deposit initial liquidity into the DSR/RSD LP with the earned RSD from PoBet, with the corresponding amount of DSR following the rate of RSD in the RSD/ETH LP
+				if (balanceOf(dsrRsdPair) == 0) {
+					_mint(address(this), _getRsdEthPoolRate().mul(earnedRsd));
+					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
 				} else {
-					// DSR contract has some DSR amount, but we don't have liquidity in DSR/RSD LP. So, we just add initial liquidity instead
-					if (balanceOf(dsrRsdPair) == 0) {
-						_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
-					} else {
-						// DSR contract has some DSR amount and there is liquidity in DSR/RSD LP. We need to check the rate of DSR/RSD pool before add liquidity in DSR/RSD LP
-						uint256 minAmount = _getDsrRsdPoolRate().mul(earnedRsd.div(2)) > balanceOf(address(this)) ? balanceOf(address(this)) : _getDsrRsdPoolRate().mul(earnedRsd.div(2));
-						_addLiquidityDsrRsd(minAmount, earnedRsd.div(2));
+					// DSR amount in DSR contract is 0, but we have some DSR in DSR/RSD LP. Here we buy DSR with half of earned RSD from PoBet and deposit them into the DSR/RSD LP
+					if (_swapRsdForDsr(earnedRsd.div(2))) {
+						DsrHelper(dsrHelperAddress).withdrawTokensSent(address(this));
+						_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd.div(2));
 					}
 				}
+			} else {
+				// DSR contract has some DSR amount, but we don't have liquidity in DSR/RSD LP. So, we just add initial liquidity instead
+				if (balanceOf(dsrRsdPair) == 0) {
+					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
+				} else {
+					// DSR contract has some DSR amount and there is liquidity in DSR/RSD LP. We need to check the rate of DSR/RSD pool before add liquidity in DSR/RSD LP
+					uint256 minAmount = _getDsrRsdPoolRate().mul(earnedRsd.div(2)) > balanceOf(address(this)) ? balanceOf(address(this)) : _getDsrRsdPoolRate().mul(earnedRsd.div(2));
+					_addLiquidityDsrRsd(minAmount, earnedRsd.div(2));
+				}
 			}
-			// we also help to improve randomness of the RSD token contract after trying the PoBet system
-			_rsdToken.generateRandomMoreThanOnce();
-			delete rsdBalance;
 		}
+		// we also help to improve randomness of the RSD token contract after trying the PoBet system
+		_rsdToken.generateRandomMoreThanOnce();
+		delete rsdBalance;
 	}
 
 	function setDeveloperComissionRate(uint256 comissionRate) public onlyOwner {
