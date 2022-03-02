@@ -329,7 +329,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 		// 4. Allocate resources for the DSR/ETH LP
 		profit = profit.sub(liqLocked.div(2));
-		uint256 dsrForEthAmount = liqLocked.div(2).mul(_getDsrEthPoolRate()); // DSR -> ETH
+		(uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
+		uint256 dsrForEthAmount = isNormalRate ? liqLocked.div(2).mul(rate) : liqLocked.div(2).div(rate); // DSR -> ETH
 		_mint(address(this), dsrForEthAmount);
 		_addLiquidityDsrEth(dsrForEthAmount, liqLocked.div(2)); // DSR + ETH
 
@@ -339,7 +340,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		if (_swapEthForRsd(liqLocked.div(2)))
 			DsrHelper(dsrHelperAddress).withdrawTokensSent(rsdTokenAddress);
 		uint256 rsdAmount = _rsdToken.balanceOf(address(this));
-		uint256 dsrForRsdAmount = rsdAmount.mul(_getDsrRsdPoolRate()); // DSR -> RSD
+		(rate, isNormalRate) = _getDsrRsdPoolRate();
+		uint256 dsrForRsdAmount = isNormalRate ? rsdAmount.mul(rate) : rsdAmount.div(rate); // DSR -> RSD
 		_mint(address(this), dsrForRsdAmount);
 		_addLiquidityDsrRsd(dsrForRsdAmount, rsdAmount.div(2)); // DSR + RSD
 
@@ -350,7 +352,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			DsrHelper(dsrHelperAddress).withdrawTokensSent(sdrTokenAddress);
 		uint256 currentSdrAmount = _sdrToken.balanceOf(address(this));
 		uint256 sdrAmount = currentSdrAmount.sub(previousSdrAmount);
-		uint256 dsrForSdrAmount = sdrAmount.mul(_getDsrSdrPoolRate()); // DSR -> SDR
+		(rate, isNormalRate) = _getDsrSdrPoolRate()
+		uint256 dsrForSdrAmount = isNormalRate ? sdrAmount.mul(rate) : sdrAmount.div(rate); // DSR -> SDR
 		_mint(address(this), dsrForSdrAmount);
 		_addLiquidityDsrSdr(dsrForSdrAmount, sdrAmount); // DSR + SDR
 
@@ -390,7 +393,9 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 		// 3. Allocate resources for the DSR/ETH LP
 		profit = profit.sub(mainLiquidity);
-		_mint(address(this), mainLiquidity.mul(_getDsrEthPoolRate()));
+		(uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
+		uint256 mainLiquidityValue = isNormalRate ? mainLiquidity.mul(rate) : mainLiquidity.div(rate);
+		_mint(address(this), mainLiquidityValue);
 		_addLiquidityDsrEth(balanceOf(address(this)), mainLiquidity);
 
 		// 4. Allocate resources for the Manager(s)
@@ -433,47 +438,55 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		developerComissionAddress.transfer(amount);
 	}
 
-	function _getDsrEthPoolRate() private view returns(uint256) {
+	function _getDsrEthPoolRate() private view returns(uint256, bool) {
 		if (dsrEthPair == address(0)) {
 			return 1;
 		} else {
-			uint256 dsrBalance = balanceOf(dsrEthPair);
-			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(dsrEthPair);
-			ethBalance = ethBalance == 0 ? 1 : ethBalance;
-			return (dsrBalance.div(ethBalance));
+			uint256 dsrBalance = balanceOf(dsrEthPair) == 0 ? 1 : balanceOf(dsrEthPair);
+			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(dsrEthPair) == 0 ? 1: IERC20(address(_wEth)).balanceOf(dsrEthPair);
+			if (dsrBalance >= ethBalance)
+				return (dsrBalance.div(ethBalance), true);
+			else
+				return (ethBalance.div(dsrBalance), false);
 		}
 	}
 
-	function _getDsrRsdPoolRate() private view returns(uint256) {
+	function _getDsrRsdPoolRate() private view returns(uint256, bool) {
 		if (dsrRsdPair == address(0)) {
 			return 1;
 		} else {
-			uint256 rsdBalance = _rsdToken.balanceOf(dsrRsdPair);
-			uint256 dsrBalance = balanceOf(dsrRsdPair);
-			rsdBalance = rsdBalance == 0 ? 1 : rsdBalance;
-			return (dsrBalance.div(rsdBalance));
+			uint256 rsdBalance = _rsdToken.balanceOf(dsrRsdPair) == 0 ? 1 : _rsdToken.balanceOf(dsrRsdPair);
+			uint256 dsrBalance = balanceOf(dsrRsdPair) == 0 ? 1 : balanceOf(dsrRsdPair);
+			if (dsrBalance >= rsdBalance)
+				return (dsrBalance.div(rsdBalance), true);
+			else
+				return (rsdBalance.div(dsrBalance), false);
 		}
 	}
 
-	function _getDsrSdrPoolRate() private view returns(uint256) {
+	function _getDsrSdrPoolRate() private view returns(uint256, bool) {
 		if (dsrSdrPair == address(0)) {
 			return 1;
 		} else {
-			uint256 dsrBalance = balanceOf(dsrSdrPair);
-			uint256 sdrBalance = _sdrToken.balanceOf(dsrSdrPair);
-			sdrBalance = sdrBalance == 0 ? 1 : sdrBalance;
-			return (dsrBalance.div(sdrBalance));
+			uint256 dsrBalance = balanceOf(dsrSdrPair) == 0 ? 1 : balanceOf(dsrSdrPair);
+			uint256 sdrBalance = _sdrToken.balanceOf(dsrSdrPair) == 0 ? 1 : _sdrToken.balanceOf(dsrSdrPair);
+			if (dsrBalance >= sdrBalance)
+				return (dsrBalance.div(sdrBalance), true);
+			else
+				return (sdrBalance.div(dsrBalance), false);
 		}
 	}
 
-	function _getRsdEthPoolRate() private view returns(uint256) {
+	function _getRsdEthPoolRate() private view returns(uint256, bool) {
 		if (rsdEthPair == address(0)) {
 			return 1;
 		} else {
-			uint256 rsdBalance = _rsdToken.balanceOf(rsdEthPair);
-			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(rsdEthPair);
-			ethBalance = ethBalance == 0 ? 1 : ethBalance;
-			return (rsdBalance.div(ethBalance));
+			uint256 rsdBalance = _rsdToken.balanceOf(rsdEthPair) == 0 ? 1 : _rsdToken.balanceOf(rsdEthPair);
+			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(rsdEthPair) == 0 ? 1 : IERC20(address(_wEth)).balanceOf(rsdEthPair);
+			if (rsdBalance >= ethBalance)
+				return (rsdBalance.div(ethBalance), true);
+			else
+				return (ethBalance.div(rsdBalance), false);
 		}
 	}
 
@@ -630,13 +643,14 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	function invest(address investor) public payable lockMint {
 		if (msg.value > 0) {
 			uint256 rate;
+			bool isNormalRate;
 			if (balanceOf(dsrEthPair) == 0 || dsrEthPair == address(0)) {
-				rate = _getRsdEthPoolRate();
+				(rate, isNormalRate) = _getRsdEthPoolRate();
 				_lastBlockWithProfit = block.number;
 			} else {
-				rate = _getDsrEthPoolRate();
+				(rate, isNormalRate) = _getDsrEthPoolRate();
 			}
-			uint256 amountInvested = (msg.value).mul(rate);
+			uint256 amountInvested = isNormalRate ? (msg.value).mul(rate) : (msg.value).div(rate);
 			_mint(investor, amountInvested);
 			_rewardSdrInfiniteFarm(investor, amountInvested);
 			_allocateResources();
@@ -665,15 +679,18 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function receiveProfit() external virtual override payable lockMint {
 		if (msg.value > 0) {
-			uint256 rate = _getDsrEthPoolRate();
-			dividendRate = dividendRate.add((msg.value).mul(rate).mul(_MAGNITUDE).div(_totalSupply));
-			totalProfit = totalProfit.add((msg.value).mul(rate));
-			_totalSupply = _totalSupply.add((msg.value).mul(rate));
+			(uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
+			uint256 value = isNormalRate ? (msg.value).mul(rate) : (msg.value).div(rate);
+			dividendRate = dividendRate.add(value.mul(_MAGNITUDE).div(_totalSupply));
+			totalProfit = totalProfit.add(value);
+			_totalSupply = _totalSupply.add(value);
 
 			_allocateProfit();
-			emit ProfitReceived((msg.value).mul(rate));
+			emit ProfitReceived(value);
 
 			delete rate;
+			delete isNormalRate;
+			delete value;
 		}
 	}
 
@@ -707,7 +724,9 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			if (balanceOf(address(this)) == 0) {
 				// DSR amount in DSR contract and in DSR/RSD LP is both 0. In this case we mint DSR and deposit initial liquidity into the DSR/RSD LP with the earned RSD from PoBet, with the corresponding amount of DSR following the rate of RSD in the RSD/ETH LP
 				if (balanceOf(dsrRsdPair) == 0) {
-					_mint(address(this), _getRsdEthPoolRate().mul(earnedRsd));
+					(uint256 rate, bool isNormalRate) = _getRsdEthPoolRate();
+					uint256 earnedRsdValue = isNormalRate ? earnedRsd.mul(rate) : earnedRsd.div(rate);
+					_mint(address(this), earnedRsdValue);
 					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
 				} else {
 					// DSR amount in DSR contract is 0, but we have some DSR in DSR/RSD LP. Here we buy DSR with half of earned RSD from PoBet and deposit them into the DSR/RSD LP
@@ -722,7 +741,9 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 					_addLiquidityDsrRsd(balanceOf(address(this)), earnedRsd);
 				} else {
 					// DSR contract has some DSR amount and there is liquidity in DSR/RSD LP. We need to check the rate of DSR/RSD pool before add liquidity in DSR/RSD LP
-					uint256 minAmount = _getDsrRsdPoolRate().mul(earnedRsd.div(2)) > balanceOf(address(this)) ? balanceOf(address(this)) : _getDsrRsdPoolRate().mul(earnedRsd.div(2));
+					(uint256 rate, bool isNormalRate) = _getDsrRsdPoolRate();
+					uint256 earnedRsdValue = isNormalRate ? earnedRsd.div(2).mul(rate) : earnedRsd.div(2).div(rate);
+					uint256 minAmount = earnedRsdValue > balanceOf(address(this)) ? balanceOf(address(this)) : earnedRsdValue;
 					_addLiquidityDsrRsd(minAmount, earnedRsd.div(2));
 				}
 			}
