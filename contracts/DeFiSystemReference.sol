@@ -352,7 +352,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			DsrHelper(dsrHelperAddress).withdrawTokensSent(sdrTokenAddress);
 		uint256 currentSdrAmount = _sdrToken.balanceOf(address(this));
 		uint256 sdrAmount = currentSdrAmount.sub(previousSdrAmount);
-		(rate, isNormalRate) = _getDsrSdrPoolRate()
+		(rate, isNormalRate) = _getDsrSdrPoolRate();
 		uint256 dsrForSdrAmount = isNormalRate ? sdrAmount.mul(rate) : sdrAmount.div(rate); // DSR -> SDR
 		_mint(address(this), dsrForSdrAmount);
 		_addLiquidityDsrSdr(dsrForSdrAmount, sdrAmount); // DSR + SDR
@@ -440,7 +440,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function _getDsrEthPoolRate() private view returns(uint256, bool) {
 		if (dsrEthPair == address(0)) {
-			return 1;
+			return (1, true);
 		} else {
 			uint256 dsrBalance = balanceOf(dsrEthPair) == 0 ? 1 : balanceOf(dsrEthPair);
 			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(dsrEthPair) == 0 ? 1: IERC20(address(_wEth)).balanceOf(dsrEthPair);
@@ -453,7 +453,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function _getDsrRsdPoolRate() private view returns(uint256, bool) {
 		if (dsrRsdPair == address(0)) {
-			return 1;
+			return (1, true);
 		} else {
 			uint256 rsdBalance = _rsdToken.balanceOf(dsrRsdPair) == 0 ? 1 : _rsdToken.balanceOf(dsrRsdPair);
 			uint256 dsrBalance = balanceOf(dsrRsdPair) == 0 ? 1 : balanceOf(dsrRsdPair);
@@ -466,7 +466,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function _getDsrSdrPoolRate() private view returns(uint256, bool) {
 		if (dsrSdrPair == address(0)) {
-			return 1;
+			return (1, true);
 		} else {
 			uint256 dsrBalance = balanceOf(dsrSdrPair) == 0 ? 1 : balanceOf(dsrSdrPair);
 			uint256 sdrBalance = _sdrToken.balanceOf(dsrSdrPair) == 0 ? 1 : _sdrToken.balanceOf(dsrSdrPair);
@@ -479,7 +479,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function _getRsdEthPoolRate() private view returns(uint256, bool) {
 		if (rsdEthPair == address(0)) {
-			return 1;
+			return (1, true);
 		} else {
 			uint256 rsdBalance = _rsdToken.balanceOf(rsdEthPair) == 0 ? 1 : _rsdToken.balanceOf(rsdEthPair);
 			uint256 ethBalance = IERC20(address(_wEth)).balanceOf(rsdEthPair) == 0 ? 1 : IERC20(address(_wEth)).balanceOf(rsdEthPair);
