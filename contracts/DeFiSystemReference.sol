@@ -381,18 +381,18 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	// RESOURCE ALLOCATION STRATEGY - FOR INITIAL INVESTORS
 	function _allocateResources() private {
-		uint256 profit = address(this).balance;
+		uint256 resources = address(this).balance;
 
 		// 1. Calculate the amounts
-		uint256 devComission = profit.mul(developerComissionRate).div(_FACTOR);
-		uint256 mainLiquidity = profit.mul(liquidityInvestmentShare).div(_FACTOR);
+		uint256 devComission = resources.mul(developerComissionRate).div(_FACTOR);
+		uint256 mainLiquidity = resources.mul(liquidityInvestmentShare).div(_FACTOR);
 
 		// 2. Pay commission of the developer team
-		profit = profit.sub(devComission);
+		resources = resources.sub(devComission);
 		_chargeComissionDev(devComission);
 
 		// 3. Allocate resources for the DSR/ETH LP
-		profit = profit.sub(mainLiquidity);
+		resources = resources.sub(mainLiquidity);
 		(uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
 		uint256 mainLiquidityValue = isNormalRate ? mainLiquidity.mul(rate) : mainLiquidity.div(rate);
 		_mint(address(this), mainLiquidityValue);
@@ -400,14 +400,14 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 		// 4. Allocate resources for the Manager(s)
 		if (managerAddresses.length > 0) {
-			uint256 share = profit.div(managerAddresses.length);
+			uint256 share = resources.div(managerAddresses.length);
 			for (uint256 i = 0; i < managerAddresses.length; i++) {
 				IManager manager = IManager(managerAddresses[i]);
 				manager.receiveResources{value: share}(address(this));
 			}
 		}
 
-		delete profit;
+		delete resources;
 		delete devComission;
 		delete mainLiquidity;
 	}
@@ -696,12 +696,15 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function removeManager(address manager) public onlyOwner {
 		require(isManagerAdded(manager), "DSR: manager informed does not exist in this contract anymore");
+		require(managerAddresses.length > 1, "DSR: the minimum amount of active managers is one");
+		IManager(manager).withdrawInvestment();
 		address[] storage newManagerAddresses;
 		for (uint256 i = 0; i < managerAddresses.length; i++) {
 			if (manager != managerAddresses[i])
 				newManagerAddresses.push(managerAddresses[i]);
 		}
 		managerAddresses = newManagerAddresses;
+		_allocateResources();
 	}
 
 	function potentialProfitPerAccount(address account) public view returns(uint256) {
@@ -751,6 +754,10 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		// we also help to improve randomness of the RSD token contract after trying the PoBet system
 		_rsdToken.generateRandomMoreThanOnce();
 		delete rsdBalance;
+	}
+
+	function setCheckerComissionRate(uint256 comissionRate) public onlyOwner {
+		checkerComissionRate = comissionRate;
 	}
 
 	function setDeveloperComissionRate(uint256 comissionRate) public onlyOwner {
