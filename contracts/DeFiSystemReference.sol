@@ -362,7 +362,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			uint256 share = profit.div(managerAddresses.length);
 			for (uint256 i = 0; i < managerAddresses.length; i++) {
 				IManager manager = IManager(managerAddresses[i]);
-				manager.receiveResources{value: share}(address(this));
+				manager.receiveResources{value: share}();
 			}
 		}
 
@@ -403,7 +403,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			uint256 share = resources.div(managerAddresses.length);
 			for (uint256 i = 0; i < managerAddresses.length; i++) {
 				IManager manager = IManager(managerAddresses[i]);
-				manager.receiveResources{value: share}(address(this));
+				manager.receiveResources{value: share}();
 			}
 		}
 
