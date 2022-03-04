@@ -11,7 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "@nomiclabs/hardhat-etherscan": "^3.0.1",
-    "@openzeppelin/contracts": "^4.2.0"
+    "@nomiclabs/hardhat-ganache": "^2.0.1",
+    "@openzeppelin/contracts": "^4.2.0",
+    "ganache": "^7.0.3"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.5",

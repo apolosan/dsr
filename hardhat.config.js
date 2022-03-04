@@ -1,6 +1,7 @@
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
+require("@nomiclabs/hardhat-ganache");
 
 const fs = require('fs');
 const path = require("path");
@@ -25,7 +26,8 @@ module.exports = {
 			mnemonic: mnemonic_,
 			allowUnlimitedContractSize: "true",
 			gas: "auto",
-			gasPrice: "auto"
+			gasPrice: "auto",
+      timeout: 60000
 		},
 		bsc_testnet: {
 			url: `https://data-seed-prebsc-1-s3.binance.org:8545`,
@@ -33,7 +35,8 @@ module.exports = {
 			blockGasLimit: 12450000,
 			gas: 12450000,
 			gasPrice: "auto",
-			network_id: 97
+			network_id: 97,
+      timeout: 60000
 		},
 		bsc_mainnet: {
 			url: `https://bsc-dataseed2.binance.org:443`,
@@ -41,7 +44,8 @@ module.exports = {
 			accounts: {mnemonic: mnemonic_},
 			blockGasLimit: 12450000,
 			gas: 12450000,
-			gasPrice: "auto"
+			gasPrice: "auto",
+      timeout: 60000
 		},
 		eth_mainnet: {
 			url: `https://mainnet.infura.io/v3/692236537493482daf8d9f4ca5f68a6a`,
@@ -49,21 +53,24 @@ module.exports = {
 			blockGasLimit: 12450000,
 			gas: 12450000,
 			gasPrice: "auto",
-			network_id: 1
+			network_id: 1,
+      timeout: 60000
 		},
 		arbitrum: {
 			url: `https://arb1.arbitrum.io/rpc`,
 			accounts: {mnemonic: mnemonic_},
 			network_id: 42161,
 			gas: 0,
-			gasPrice: "auto"
+			gasPrice: "auto",
+      timeout: 60000
 		},
 		optimism: {
 			url: `https://mainnet.optimism.io`,
 			accounts: {mnemonic: mnemonic_},
 			network_id: 10,
 			gas: 0,
-			gasPrice: "auto"
+			gasPrice: "auto",
+      timeout: 60000
 		},
 		fantom_testnet: {
 			url: `https://rpc.testnet.fantom.network`,
@@ -71,7 +78,8 @@ module.exports = {
 			blockGasLimit: 5000000,
 			gas: 5000000,
 			gasPrice: "auto",
-			network_id: 0xfa2
+			network_id: 0xfa2,
+      timeout: 60000
 		},
 		harmony: {
 			url: `https://api.harmony.one`,
@@ -79,6 +87,7 @@ module.exports = {
 			gas: 5000000,
 			gasPrice: "auto",
 			network_id: 1666600000,
+      timeout: 60000
 		}
 	},
 	etherscan: {
