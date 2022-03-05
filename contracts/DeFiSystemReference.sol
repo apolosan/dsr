@@ -63,6 +63,15 @@ System DeFi for Reference (SDR) is an utility token used for savings and additio
 RSD and DSR. Reference System for DeFi (RSD) is an intelligent token with dynamic and elastic supply aimed for trading,
 gambling and also to reward miners.
 ---------------------------------------------------------------------------------------
+
+REVERT/REQUIRE CODE ERRORS:
+DSR01: PoBet is tried only once at a time
+DSR02: please refer you can call this function only once at a time until it is fully executed
+DSR03: only managers can call this function
+DSR04: manager was added already
+DSR05: manager informed does not exist in this contract anymore
+DSR06: the minimum amount of active managers is one
+---------------------------------------------------------------------------------------
 */
 pragma solidity >=0.8.0;
 
@@ -132,21 +141,21 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	event ProfitReceived(uint256 amount);
 
 	modifier lockTryPoBet() {
-		require(!_isTryPoBet, "DSR: PoBet is tried only once at a time");
+		require(!_isTryPoBet, "DSR01");
 		_isTryPoBet = true;
 		_;
 		_isTryPoBet = false;
 	}
 
 	modifier lockMint() {
-		require(!_isMintLocked, "DSR: please refer you can call this function only once at a time until it is fully executed");
+		require(!_isMintLocked, "DSR02");
 		_isMintLocked = true;
 		_;
 		_isMintLocked = false;
 	}
 
 	modifier onlyManager() {
-		require(isManagerAdded(_msgSender()) || _msgSender() == owner(), "DSR: only managers can call this function");
+		require(isManagerAdded(_msgSender()) || _msgSender() == owner(), "DSR03");
 		_;
 	}
 
@@ -582,7 +591,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function addManager(address manager) public onlyOwner {
-		require(!isManagerAdded(manager), "DSR: manager was added already");
+		require(!isManagerAdded(manager), "DSR04");
 		managerAddresses.push(manager);
 	}
 
@@ -704,8 +713,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function removeManager(address manager) public onlyOwner {
-		require(isManagerAdded(manager), "DSR: manager informed does not exist in this contract anymore");
-		require(managerAddresses.length > 1, "DSR: the minimum amount of active managers is one");
+		require(isManagerAdded(manager), "DSR05");
+		require(managerAddresses.length > 1, "DSR06");
 		IManager(manager).withdrawInvestment();
 		IManager(manager).setDsrTokenAddresss(address(0));
 		address[] storage newManagerAddresses;
