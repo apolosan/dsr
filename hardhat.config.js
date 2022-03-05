@@ -27,7 +27,7 @@ module.exports = {
 			allowUnlimitedContractSize: "true",
 			gas: "auto",
 			gasPrice: "auto",
-      timeout: 60000
+      timeout: 40000
 		},
 		bsc_testnet: {
 			url: `https://data-seed-prebsc-1-s3.binance.org:8545`,

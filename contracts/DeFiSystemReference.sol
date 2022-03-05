@@ -139,10 +139,15 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	modifier lockMint() {
-		require(!_isMintLocked, "DSR: please refer you can call this function only once at a time");
+		require(!_isMintLocked, "DSR: please refer you can call this function only once at a time until it is fully executed");
 		_isMintLocked = true;
 		_;
 		_isMintLocked = false;
+	}
+
+	modifier onlyManager() {
+		require(isManagerAdded(_msgSender()) || _msgSender() == owner(), "DSR: only managers can call this function");
+		_;
 	}
 
 	constructor(
@@ -153,12 +158,14 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	receive() external payable {
-		invest(_msgSender());
+		if (_msgSender() != dsrHelperAddress)
+			invest(_msgSender());
 	}
 
 	fallback() external payable {
 		require(msg.data.length == 0);
-		invest(_msgSender());
+		if (_msgSender() != dsrHelperAddress)
+			invest(_msgSender());
 	}
 
 	function _transfer(address sender, address recipient, uint256 amount) internal virtual override {
@@ -311,7 +318,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	// RESOURCE ALLOCATION STRATEGY - FOR EARNED PROFIT
-	function _allocateProfit() private {
+	function _allocateProfit(bool mustChargeComission) private {
 		uint256 profit = address(this).balance; // Assuming the profit was received as regular ETH instead of wrapped ETH
 
 		// 1. Calculate the amounts
@@ -324,8 +331,10 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		_chargeComissionCheck(checkComission);
 
 		// 3. Pay commission for the developer team
-		profit = profit.sub(devComission);
-		_chargeComissionDev(devComission);
+		if (mustChargeComission) {
+			profit = profit.sub(devComission);
+			_chargeComissionDev(devComission);
+		}
 
 		// 4. Allocate resources for the DSR/ETH LP
 		profit = profit.sub(liqLocked.div(2));
@@ -677,7 +686,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		return randomWalletAddress;
 	}
 
-	function receiveProfit() external virtual override payable lockMint {
+	function receiveProfit(bool mustChargeComission) external virtual override payable onlyManager lockMint {
 		if (msg.value > 0) {
 			(uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
 			uint256 value = isNormalRate ? (msg.value).mul(rate) : (msg.value).div(rate);
@@ -685,7 +694,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			totalProfit = totalProfit.add(value);
 			_totalSupply = _totalSupply.add(value);
 
-			_allocateProfit();
+			_allocateProfit(mustChargeComission);
 			emit ProfitReceived(value);
 
 			delete rate;
@@ -698,6 +707,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		require(isManagerAdded(manager), "DSR: manager informed does not exist in this contract anymore");
 		require(managerAddresses.length > 1, "DSR: the minimum amount of active managers is one");
 		IManager(manager).withdrawInvestment();
+		IManager(manager).setDsrTokenAddresss(address(0));
 		address[] storage newManagerAddresses;
 		for (uint256 i = 0; i < managerAddresses.length; i++) {
 			if (manager != managerAddresses[i])
