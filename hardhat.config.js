@@ -30,11 +30,11 @@ module.exports = {
       timeout: 60000
 		},
 		bsc_testnet: {
-			url: `https://data-seed-prebsc-1-s3.binance.org:8545`,
+			url: `https://data-seed-prebsc-1-s1.binance.org:8545`,
 			accounts: {mnemonic: mnemonic_},
-			blockGasLimit: 12450000,
-			gas: 12450000,
-			gasPrice: "auto",
+      blockGasLimit: 12450000,
+      gasPrice: "auto",
+      gas: 6000000,
 			network_id: 97,
       timeout: 60000
 		},
@@ -56,6 +56,15 @@ module.exports = {
 			network_id: 1,
       timeout: 60000
 		},
+    eth_rinkeby: {
+      url: `https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161`,
+      accounts: {mnemonic: mnemonic_},
+      blockGasLimit: 12450000,
+      gas: 12450000,
+      gasPrice: "auto",
+      network_id: 4,
+      timeout: 60000
+    },
 		arbitrum: {
 			url: `https://arb1.arbitrum.io/rpc`,
 			accounts: {mnemonic: mnemonic_},
