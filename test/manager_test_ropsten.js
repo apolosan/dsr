@@ -1,14 +1,14 @@
 const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 
-const UNISWAP_ROUTER_ADDRESS = "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
-const COMPTROLLER_ADDRESS = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
-const PRICE_FEED_ADDRESS = "0xd61c7Fa07dF7241812eA6D21744a61f1257D1818";
-const ASSETS = ["0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd", "0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47"]; // ETH & USDC
-const INVERTED_ASSETS = ["0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47", "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd"];
-const C_ASSETS = ["0x2E7222e51c0f6e98610A1543Aa3836E092CDe62c", "0x08e0A5575De71037aE36AbfAfb516595fE68e5e4"];
+const UNISWAP_ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
+const COMPTROLLER_ADDRESS = "0xcfa7b0e37f5AC60f3ae25226F5e39ec59AD26152";
+const PRICE_FEED_ADDRESS = "0x7BBF806F69ea21Ea9B8Af061AD0C1c41913063A1";
+const ASSETS = ["0xc778417E063141139Fce010982780140Aa0cD5Ab", "0x07865c6E87B9F70255377e024ace6630C1Eaa37F"]; // ETH & USDC
+const INVERTED_ASSETS = ["0x07865c6E87B9F70255377e024ace6630C1Eaa37F", "0xc778417E063141139Fce010982780140Aa0cD5Ab"];
+const C_ASSETS = ["0x859e9d8a4edadfEDb5A2fF311243af80F85A91b8", "0x2973e69b20563bcc66dC63Bde153072c33eF37fe"];
 const CONSOLE_LOG = true;
-const ETH = "0.05";
+const ETH = "10";
 
 describe("Manager", async () => {
 		let signers, manager;
@@ -17,6 +17,8 @@ describe("Manager", async () => {
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
 				Manager = await ethers.getContractFactory("Manager");
+				// const block = await ethers.provider.getBlock("latest");
+				// console.log(block);
 				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS);
 		});
 
@@ -70,8 +72,8 @@ describe("Manager", async () => {
 		});
 
 		it(`must create two accounts for investment`, async () => {
-			const account0 = await manager.testGetAccount(0);
-			const account1 = await manager.testGetAccount(1);
+			const account0 = await manager.getAccount(0);
+			const account1 = await manager.getAccount(1);
 			if (CONSOLE_LOG) {
 				console.log(account0);
 				console.log(account1);
@@ -80,15 +82,15 @@ describe("Manager", async () => {
 		});
 
 		it(`should pass the comptroller address to created accounts`, async() => {
-			const comptrollerAddress = await manager.testGetComptrollerAddress();
+			const comptrollerAddress = await manager.getComptrollerAddress();
 			if (CONSOLE_LOG)
 				console.log(`Comptroller Address: ${comptrollerAddress}`);
 			assert(comptrollerAddress == COMPTROLLER_ADDRESS);
 		});
 
 		it(`should invest resources automatically, right after it receives some ETH amount`, async () => {
-			const account01 = await manager.testGetAccount(0);
-			const account02 = await manager.testGetAccount(1);
+			const account01 = await manager.getAccount(0);
+			const account02 = await manager.getAccount(1);
 			const tx = await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const IERC20 = await artifacts.readArtifact("IERC20");
 			const InvestmentAccount = await artifacts.readArtifact("InvestmentAccount");
@@ -126,7 +128,7 @@ describe("Manager", async () => {
 			assert(previousExposure[0] < currentExposure[0] && previousExposure[1] > currentExposure[1]);
 		});
 
-		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (1%)`, async () => {
+		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (4%)`, async () => {
 			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const previousExposure = await manager.getExposureOfAccounts();
 			const IUniswapV2Router02_ = await artifacts.readArtifact("IUniswapV2Router02");
@@ -134,7 +136,6 @@ describe("Manager", async () => {
 			const router = router_.connect(ethers.provider.getSigner(signers[0].address));
 			await router.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
 			const currentExposure = await manager.getExposureOfAccounts();
-			await manager.testSetExposureDifference(1);
 			const previousBalance = await ethers.provider.getBalance(signers[0].address);
 			await manager.checkForProfit();
 			const currentBalance = await ethers.provider.getBalance(signers[0].address);

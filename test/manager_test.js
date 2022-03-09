@@ -8,6 +8,7 @@ const ASSETS = ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xA0b86991c6218b3
 const INVERTED_ASSETS = ["0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"];
 const C_ASSETS = ["0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5", "0x39AA39c021dfbaE8faC545936693aC917d5E7563"];
 const CONSOLE_LOG = true;
+const ETH = "0.05";
 
 // TEST FUNCTIONS ON Manager.sol
 // function testGetAccount(uint256 index) public view returns(address) {
@@ -106,7 +107,7 @@ describe("Manager", async () => {
 		it(`should invest resources automatically, right after it receives some ETH amount`, async () => {
 			const account01 = await manager.testGetAccount(0);
 			const account02 = await manager.testGetAccount(1);
-			const tx = await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther("1.0")});
+			const tx = await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const IERC20 = await artifacts.readArtifact("IERC20");
 			const InvestmentAccount = await artifacts.readArtifact("InvestmentAccount");
 			const cEth = new ethers.Contract(C_ASSETS[0], IERC20.abi, ethers.provider);
@@ -129,12 +130,12 @@ describe("Manager", async () => {
 		});
 
 		it(`should adjust the exposure according to the price movement`, async () => {
-			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther("1.0")});
+			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const previousExposure = await manager.getExposureOfAccounts();
 			const IUniswapV2Router02 = await artifacts.readArtifact("IUniswapV2Router02");
 			const exchangeRouter_ = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, IUniswapV2Router02.abi, ethers.provider);
 			const exchangeRouter = exchangeRouter_.connect(ethers.provider.getSigner(signers[0].address));
-			await exchangeRouter.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther("2.0")});
+			await exchangeRouter.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
 			const currentExposure = await manager.getExposureOfAccounts();
 			if (CONSOLE_LOG) {
 				console.log(previousExposure);
@@ -144,12 +145,12 @@ describe("Manager", async () => {
 		});
 
 		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (1%)`, async () => {
-			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther("1.0")});
+			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const previousExposure = await manager.getExposureOfAccounts();
 			const IUniswapV2Router02_ = await artifacts.readArtifact("IUniswapV2Router02");
 			const router_ = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, IUniswapV2Router02_.abi, ethers.provider);
 			const router = router_.connect(ethers.provider.getSigner(signers[0].address));
-			await router.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther("900.0")});
+			await router.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
 			const currentExposure = await manager.getExposureOfAccounts();
 			await manager.testSetExposureDifference(1);
 			const previousBalance = await ethers.provider.getBalance(signers[0].address);
@@ -171,7 +172,7 @@ describe("Manager", async () => {
 		});
 
 		it(`should be able to reset positions and withdraw all the investment`, async () => {
-			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther("2")});
+			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const previousExposure = await manager.getExposureOfAccounts();
 			const previousBalance = await ethers.provider.getBalance(signers[0].address);
 			await manager.withdrawInvestment();
