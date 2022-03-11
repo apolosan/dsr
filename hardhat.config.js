@@ -6,7 +6,7 @@ require('hardhat-contract-sizer');
 
 const fs = require('fs');
 const path = require("path");
-const mnemonic_ = fs.readFileSync(path.resolve(__dirname, ".secret")).toString().trim();
+const mnemonic_ = fs.readFileSync(path.resolve(__dirname, ".secret_deploy")).toString().trim();
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -18,7 +18,7 @@ module.exports = {
         evmVersion: "byzantium",
 				optimizer: {
 					enabled: true,
-					runs: 1000000
+					runs: 6000
 				}
 			}
 		},
@@ -103,13 +103,13 @@ module.exports = {
 			gasPrice: "auto",
       timeout: 40000
 		},
-		fantom_testnet: {
-			url: `https://rpc.testnet.fantom.network`,
+		fantom: {
+			url: `https://rpc.ftm.tools`,
 			accounts: {mnemonic: mnemonic_},
 			blockGasLimit: 5000000,
 			gas: 5000000,
 			gasPrice: "auto",
-			network_id: 0xfa2,
+			network_id: 250,
       timeout: 40000
 		},
     polygon: {
