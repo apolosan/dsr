@@ -247,7 +247,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
-		tryPoBet();
+		tryPoBet(uint256(sha256(abi.encodePacked(from, to, amount))));
 	}
 
 	function balanceOf(address account) public view virtual override returns (uint256) {
@@ -329,18 +329,6 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 				manager.receiveResources{value: share}();
 			}
 		}
-
-		delete profit;
-		delete checkComission;
-		delete devComission;
-		delete liqLocked;
-		delete dsrForEthAmount;
-		delete rsdAmount;
-		delete dsrForRsdAmount;
-		delete previousSdrAmount;
-		delete currentSdrAmount;
-		delete sdrAmount;
-		delete dsrForSdrAmount;
 	}
 
 	// RESOURCE ALLOCATION STRATEGY - FOR INITIAL INVESTORS
@@ -373,10 +361,6 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 				manager.receiveResources{value: share}();
 			}
 		}
-
-		delete resources;
-		delete devComission;
-		delete mainLiquidity;
 	}
 
 	function _calculateProfitPerBlock() private {
@@ -396,7 +380,6 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	function _chargeComissionDev(uint256 amount) private {
-		// check if the commission wallet is defined
 		if (developerComissionAddress != address(0))
 			developerComissionAddress.transfer(amount);
 	}
@@ -439,11 +422,13 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function initializeTokenContract(
 			address dsrHelperAddress_,
+			address developerComissionAddress_,
 			address exchangeRouterAddress_,
 			address rsdTokenAddress_,
 			address sdrTokenAddress_
 		) public onlyOwner {
 			dsrHelperAddress = dsrHelperAddress_;
+			developerComissionAddress = payable(developerComissionAddress_);
 			exchangeRouterAddress = exchangeRouterAddress_;
 			rsdTokenAddress = rsdTokenAddress_; // 0x61ed1c66239d29cc93c8597c6167159e8f69a823
 			sdrTokenAddress = sdrTokenAddress_;
@@ -503,14 +488,14 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		return false;
 	}
 
-	function obtainRandomWalletAddress() public view returns(address) {
-		uint256 someValue = IReferenceSystemDeFi(rsdTokenAddress).totalSupply();
+	function obtainRandomWalletAddress(uint256 someNumber) public view returns(address) {
 		address randomWalletAddress = address(bytes20(sha256(abi.encodePacked(
 				block.timestamp,
 				block.number,
 				_totalSupply,
 				msg.sender,
-				someValue
+				IReferenceSystemDeFi(rsdTokenAddress).totalSupply(),
+				someNumber
 			))));
 		return randomWalletAddress;
 	}
@@ -527,10 +512,6 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 			_allocateProfit(mustChargeComission);
 			emit ProfitReceived(value);
-
-			delete rate;
-			delete isNormalRate;
-			delete value;
 		}
 	}
 
@@ -553,15 +534,15 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	}
 
 	// here the DSR token contract tries to earn some RSD tokens in the PoBet system. The earned amount is then locked in the DSR/RSD LP
-	function tryPoBet() public {
+	function tryPoBet(uint256 someNumber) public {
 		require(!_isTryPoBet, "DSR01");
 		_isTryPoBet = true;
 		uint256 rsdBalance = IReferenceSystemDeFi(rsdTokenAddress).balanceOf(address(this));
 
 		if (rsdBalance > 0)
-			IReferenceSystemDeFi(rsdTokenAddress).transfer(obtainRandomWalletAddress(), 1);
+			IReferenceSystemDeFi(rsdTokenAddress).transfer(obtainRandomWalletAddress(someNumber), 1);
 		else
-			IReferenceSystemDeFi(rsdTokenAddress).transfer(obtainRandomWalletAddress(), 0);
+			IReferenceSystemDeFi(rsdTokenAddress).transfer(obtainRandomWalletAddress(someNumber), 0);
 
 		// it means we have won the PoBet prize! Woo hoo! So, now we lock liquidity in DSR/RSD LP with this earned amount!
 		if (rsdBalance < IReferenceSystemDeFi(rsdTokenAddress).balanceOf(address(this))) {
@@ -605,7 +586,6 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 		// we also help to improve randomness of the RSD token contract after trying the PoBet system
 		IReferenceSystemDeFi(rsdTokenAddress).generateRandomMoreThanOnce();
 		_isTryPoBet = false;
-		delete rsdBalance;
 	}
 
 	function setCheckerComissionRate(uint256 comissionRate) public onlyOwner {
