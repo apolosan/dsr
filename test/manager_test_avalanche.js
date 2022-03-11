@@ -1,25 +1,25 @@
+// https://trufflesuite.com/blog/introducing-ganache-7/index.html#5-mine-blocks-instantly-at-interval-or-on-demand
+
 const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 
-const UNISWAP_ROUTER_ADDRESS = "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
-const COMPTROLLER_ADDRESS = "0xF20fcd005AFDd3AD48C85d0222210fe168DDd10c";
-const PRICE_FEED_ADDRESS = "0xD375E22f5D98cc808454D8F67b78dC20c3219959";
-const ASSETS = ["0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270", "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"]; // ETH & USDC
-const INVERTED_ASSETS = ["0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"];
-const C_ASSETS = ["0xCa0F37f73174a28a64552D426590d3eD601ecCa1", "0xbEbAD52f3A50806b25911051BabDe6615C8e21ef"];
+const UNISWAP_ROUTER_ADDRESS = "0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
+const COMPTROLLER_ADDRESS = "0x2eE80614Ccbc5e28654324a66A396458Fa5cD7Cc"; // "0xfD36E2c2a6789Db23113685031d7F16329158384" - Comptroller Venus;
+const PRICE_FEED_ADDRESS = "0x0980f2F0D2af35eF2c4521b2342D59db575303F7";
+const ASSETS = ["0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", "0xc7198437980c041c805A1EDcbA50c1Ce5db95118"]; // ETH & USDC
+const INVERTED_ASSETS = ["0xc7198437980c041c805A1EDcbA50c1Ce5db95118", "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"];
+const C_ASSETS = ["0xb3c68d69E95B095ab4b33B4cB67dBc0fbF3Edf56", "0xCEb1cE674f38398432d20bc8f90345E91Ef46fd3"];
 const CONSOLE_LOG = true;
-const ETH = "10";
+const ETH = "5";
 
-describe("Manager", async () => {
+describe("ManagerAvax", async () => {
 		let signers, manager;
 		const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
-				Manager = await ethers.getContractFactory("Manager");
-				// const block = await ethers.provider.getBlock("latest");
-				// console.log(block);
-				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, "");
+				ManagerAvax = await ethers.getContractFactory("ManagerAvax");
+				manager = await ManagerAvax.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, ASSETS[0]);
 		});
 
 		it("should deploy manager contract correctly", async () => {
@@ -27,7 +27,7 @@ describe("Manager", async () => {
 		});
 
 		it("should set price feed address correctly", async () => {
-			const priceFeedAddress = await manager._priceFeedAddress();
+			const priceFeedAddress = await manager.getPriceFeedAddress();
 			if (CONSOLE_LOG) {
 				console.log(`Price Feed Address: ${priceFeedAddress}`)
 			}
@@ -48,7 +48,7 @@ describe("Manager", async () => {
 		});
 
 		it(`should show the assets pair address obtained from exchange router`, async () => {
-			const pairAddress = await manager._pair();
+			const pairAddress = await manager.getPairAddress();
 			if (CONSOLE_LOG)
 				console.log(`ETH|USD Pair Address: ${pairAddress}`);
 			assert(pairAddress != '' || pairAddress != ZERO_ADDRESS);
@@ -62,10 +62,10 @@ describe("Manager", async () => {
 		});
 
 		it(`should update the DSR token address correctly`, async () => {
-			const oldDsrAddress = await manager._dsrTokenAddress();
+			const oldDsrAddress = await manager.getDsrTokenAddress();
 			const dsrAddress = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
 			await manager.setDsrTokenAddresss(dsrAddress);
-			const newDsrAddress = await manager._dsrTokenAddress();
+			const newDsrAddress = await manager.getDsrTokenAddress();
 			if (CONSOLE_LOG)
 				console.log(`DSR Token Address: ${newDsrAddress}`);
 			assert(oldDsrAddress != newDsrAddress);
@@ -119,7 +119,7 @@ describe("Manager", async () => {
 			const IUniswapV2Router02 = await artifacts.readArtifact("IUniswapV2Router02");
 			const exchangeRouter_ = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, IUniswapV2Router02.abi, ethers.provider);
 			const exchangeRouter = exchangeRouter_.connect(ethers.provider.getSigner(signers[0].address));
-			await exchangeRouter.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
+			await exchangeRouter.swapExactAVAXForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
 			const currentExposure = await manager.getExposureOfAccounts();
 			if (CONSOLE_LOG) {
 				console.log(previousExposure);
@@ -134,7 +134,7 @@ describe("Manager", async () => {
 			const IUniswapV2Router02_ = await artifacts.readArtifact("IUniswapV2Router02");
 			const router_ = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, IUniswapV2Router02_.abi, ethers.provider);
 			const router = router_.connect(ethers.provider.getSigner(signers[0].address));
-			await router.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
+			await router.swapExactAVAXForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
 			const currentExposure = await manager.getExposureOfAccounts();
 			const previousBalance = await ethers.provider.getBalance(signers[0].address);
 			await manager.checkForProfit();

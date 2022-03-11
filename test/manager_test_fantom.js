@@ -19,7 +19,7 @@ describe("Manager", async () => {
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
 				Manager = await ethers.getContractFactory("Manager");
-				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS);
+				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, ZERO_ADDRESS);
 		});
 
 		it("should deploy manager contract correctly", async () => {

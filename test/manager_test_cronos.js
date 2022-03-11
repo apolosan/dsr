@@ -3,7 +3,7 @@
 const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 
-const UNISWAP_ROUTER_ADDRESS = "0x145863Eb42Cf62847A6Ca784e6416C1682b1b2Ae"; 
+const UNISWAP_ROUTER_ADDRESS = "0x145863Eb42Cf62847A6Ca784e6416C1682b1b2Ae";
 const COMPTROLLER_ADDRESS = "";
 const PRICE_FEED_ADDRESS = "";
 const ASSETS = ["", ""]; // ETH & USDC
@@ -19,7 +19,7 @@ describe("Manager", async () => {
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
 				Manager = await ethers.getContractFactory("Manager");
-				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS);
+				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, "");
 		});
 
 		it("should deploy manager contract correctly", async () => {

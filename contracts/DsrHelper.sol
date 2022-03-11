@@ -9,11 +9,11 @@ import "./IWETH.sol";
 
 contract DsrHelper is Context {
 
-	address immutable private dsrTokenAddress;
-	address private rsdTokenAddress;
-	address private sdrTokenAddress;
-	IUniswapV2Router02 private exchangeRouter;
-	IWETH private _wEth;
+	address immutable internal dsrTokenAddress;
+	address internal rsdTokenAddress;
+	address internal sdrTokenAddress;
+	IUniswapV2Router02 internal exchangeRouter;
+	IWETH internal _wEth;
 
 	modifier fromDsrToken {
 		require(_msgSender() == dsrTokenAddress, "DSR Helper: only DSR token contract can call this function");
@@ -94,7 +94,7 @@ contract DsrHelper is Context {
 		}
 	}
 
-	function swapEthForRsd(uint256 ethAmount) external fromDsrToken returns(bool) {
+	function swapEthForRsd(uint256 ethAmount) external virtual fromDsrToken returns(bool) {
 		// generate the pair path of ETH -> RSD on exchange router contract
 		address[] memory path = new address[](2);
 		path[0] = address(_wEth);

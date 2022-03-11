@@ -6,7 +6,7 @@ require('hardhat-contract-sizer');
 
 const fs = require('fs');
 const path = require("path");
-const mnemonic_ = fs.readFileSync(path.resolve(__dirname, ".secret_deploy")).toString().trim();
+const mnemonic_ = fs.readFileSync(path.resolve(__dirname, ".secret")).toString().trim();
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -119,6 +119,15 @@ module.exports = {
       gas: 5000000,
       gasPrice: "auto",
       network_id: 137,
+      timeout: 40000
+    },
+    avalanche: {
+      url: `https://api.avax.network/ext/bc/C/rpc`,
+      accounts: {mnemonic: mnemonic_},
+      blockGasLimit: 5000000,
+      gas: 5000000,
+      gasPrice: "auto",
+      network_id: 43114,
       timeout: 40000
     },
 		harmony: {

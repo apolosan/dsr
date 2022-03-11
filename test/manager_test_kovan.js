@@ -19,7 +19,7 @@ describe("Manager", async () => {
 				Manager = await ethers.getContractFactory("Manager");
 				// const block = await ethers.provider.getBlock("latest");
 				// console.log(block);
-				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS);
+				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, "");
 		});
 
 		it("should deploy manager contract correctly", async () => {

@@ -4,11 +4,11 @@ const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 
 const UNISWAP_ROUTER_ADDRESS = "0x10ED43C718714eb63d5aA57B78B54704E256024E"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
-const COMPTROLLER_ADDRESS = ""; // "0xfD36E2c2a6789Db23113685031d7F16329158384" - Comptroller Venus;
-const PRICE_FEED_ADDRESS = ""; // "0x516c18DC440f107f12619a6d2cc320622807d0eE" - PriceFeed Venus;
+const COMPTROLLER_ADDRESS = "0x589DE0F0Ccf905477646599bb3E5C622C84cC0BA"; // "0xfD36E2c2a6789Db23113685031d7F16329158384" - Comptroller Venus;
+const PRICE_FEED_ADDRESS = "0xab548FFf4Db8693c999e98551C756E6C2948C408";
 const ASSETS = ["0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"]; // ETH & USDC
 const INVERTED_ASSETS = ["0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"];
-const C_ASSETS = ["", ""];
+const C_ASSETS = ["0x1Ffe17B99b439bE0aFC831239dDECda2A790fF3A", "0x2Bc4eb013DDee29D37920938B96d353171289B7C"];
 const CONSOLE_LOG = true;
 const ETH = "10";
 
@@ -19,7 +19,7 @@ describe("Manager", async () => {
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
 				Manager = await ethers.getContractFactory("Manager");
-				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS);
+				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, "");
 		});
 
 		it("should deploy manager contract correctly", async () => {
