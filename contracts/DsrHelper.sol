@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IUniswapV2Router02.sol";
 import "./IUniswapV2Factory.sol";
 import "./IWETH.sol";
+import "hardhat/console.sol";
 
-contract DsrHelper is Context {
+contract DsrHelper is Context, Ownable {
 
 	address immutable internal dsrTokenAddress;
 	address internal rsdTokenAddress;
@@ -16,7 +18,7 @@ contract DsrHelper is Context {
 	IWETH internal _wEth;
 
 	modifier fromDsrToken {
-		require(_msgSender() == dsrTokenAddress, "DSR Helper: only DSR token contract can call this function");
+		require(_msgSender() == dsrTokenAddress || _msgSender() == owner(), "DSR Helper: only DSR token contract can call this function");
 		_;
 	}
 
@@ -29,6 +31,13 @@ contract DsrHelper is Context {
 			exchangeRouter = exchangeRouter_;
 			_wEth = IWETH(exchangeRouter.WETH());
 		}
+	}
+
+	receive() external payable {
+	}
+
+	fallback() external payable {
+		require(msg.data.length == 0);
 	}
 
 	function addLiquidityDsrEth(uint256 dsrTokenAmount) external payable fromDsrToken returns(bool) {

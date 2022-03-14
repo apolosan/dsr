@@ -84,9 +84,9 @@ import "./IDeFiSystemReference.sol";
 import "./IWETH.sol";
 import "./IManager.sol";
 import "./DsrHelper.sol";
-/* import "hardhat/console.sol"; */
+import "hardhat/console.sol";
 
-contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi System for Reference", "DSR"), Ownable {
+contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 
 	using SafeMath for uint256;
 
@@ -98,7 +98,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	address public sdrTokenAddress;
 
 	address public dsrHelperAddress;
-	address payable public developerComissionAddress;
+	address public developerComissionAddress;
 
 	address public dsrEthPair;
 	address public dsrRsdPair;
@@ -145,9 +145,9 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	constructor(
 		string memory name,
-		string memory symbol) {
-		_name = name;
-		_symbol = symbol;
+		string memory symbol) ERC20(name, symbol) {
+			_name = name;
+			_symbol = symbol;
 	}
 
 	receive() external payable {
@@ -283,43 +283,40 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 		// 4. Allocate resources for the DSR/ETH LP
 		profit = profit.sub(liqLocked.div(2));
-		// (uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
-		(uint256 rate, bool isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(dsrEthPair, address(this), address(_wEth));
+		(uint256 rate, bool isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrEthPair, address(this), address(_wEth));
 		uint256 dsrForEthAmount = isNormalRate ? liqLocked.div(2).mul(rate) : liqLocked.div(2).div(rate); // DSR -> ETH
 		_mint(address(this), dsrForEthAmount);
 		transfer(dsrHelperAddress, dsrForEthAmount);
-		DsrHelper(dsrHelperAddress).addLiquidityDsrEth{value: liqLocked.div(2)}(dsrForEthAmount); // DSR + ETH
+		DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrEth{value: liqLocked.div(2)}(dsrForEthAmount); // DSR + ETH
 
 		// 5. Allocate resources for the DSR/RSD LP and DSR/SDR LP - ETH remaining used for liquidity
 		profit = profit.sub(liqLocked.div(2));
 		payable(dsrHelperAddress).transfer(liqLocked.div(2));
-		DsrHelper(dsrHelperAddress).swapEthForRsd(liqLocked.div(2));
-		DsrHelper(dsrHelperAddress).withdrawTokensSent(rsdTokenAddress);
+		DsrHelper(payable(dsrHelperAddress)).swapEthForRsd(liqLocked.div(2));
+		DsrHelper(payable(dsrHelperAddress)).withdrawTokensSent(rsdTokenAddress);
 		uint256 rsdAmount = IReferenceSystemDeFi(rsdTokenAddress).balanceOf(address(this));
-		// (rate, isNormalRate) = _getDsrRsdPoolRate();
-		(rate, isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(dsrRsdPair, address(this), rsdTokenAddress);
+		(rate, isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrRsdPair, address(this), rsdTokenAddress);
 		uint256 dsrForRsdAmount = isNormalRate ? rsdAmount.mul(rate) : rsdAmount.div(rate); // DSR -> RSD
 		_mint(address(this), dsrForRsdAmount);
 		transfer(dsrHelperAddress, dsrForRsdAmount);
 		IERC20(rsdTokenAddress).transfer(dsrHelperAddress, rsdAmount.div(2));
-		DsrHelper(dsrHelperAddress).addLiquidityDsrRsd(dsrForRsdAmount); // DSR + RSD
+		DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrRsd(dsrForRsdAmount); // DSR + RSD
 
 		rsdAmount = IReferenceSystemDeFi(rsdTokenAddress).balanceOf(address(this));
 
 		uint256 previousSdrAmount = IERC20(sdrTokenAddress).balanceOf(address(this));
 		IERC20(rsdTokenAddress).transfer(dsrHelperAddress, rsdAmount);
-		DsrHelper(dsrHelperAddress).swapRsdForSdr(rsdAmount);
-		DsrHelper(dsrHelperAddress).withdrawTokensSent(sdrTokenAddress);
+		DsrHelper(payable(dsrHelperAddress)).swapRsdForSdr(rsdAmount);
+		DsrHelper(payable(dsrHelperAddress)).withdrawTokensSent(sdrTokenAddress);
 
 		uint256 currentSdrAmount = IERC20(sdrTokenAddress).balanceOf(address(this));
 		uint256 sdrAmount = currentSdrAmount.sub(previousSdrAmount);
-		// (rate, isNormalRate) = _getDsrSdrPoolRate();
-		(rate, isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(dsrSdrPair, address(this), sdrTokenAddress);
+		(rate, isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrSdrPair, address(this), sdrTokenAddress);
 		uint256 dsrForSdrAmount = isNormalRate ? sdrAmount.mul(rate) : sdrAmount.div(rate); // DSR -> SDR
 		_mint(address(this), dsrForSdrAmount);
 		transfer(dsrHelperAddress, dsrForSdrAmount);
 		IERC20(sdrTokenAddress).transfer(dsrHelperAddress, sdrAmount);
-		DsrHelper(dsrHelperAddress).addLiquidityDsrSdr(dsrForSdrAmount); // DSR + SDR
+		DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrSdr(dsrForSdrAmount); // DSR + SDR
 
 		// 6. Allocate remaining resources for the Manager(s)
 		if (managerAddresses.length > 0) {
@@ -345,13 +342,12 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 		// 3. Allocate resources for the DSR/ETH LP
 		resources = resources.sub(mainLiquidity);
-		// (uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
-		(uint256 rate, bool isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(dsrEthPair, address(this), address(_wEth));
+		(uint256 rate, bool isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrEthPair, address(this), address(_wEth));
 		uint256 mainLiquidityValue = isNormalRate ? mainLiquidity.mul(rate) : mainLiquidity.div(rate);
 		_mint(address(this), mainLiquidityValue);
 		uint256 amountToDsrEth = balanceOf(address(this));
 		transfer(dsrHelperAddress, amountToDsrEth);
-		DsrHelper(dsrHelperAddress).addLiquidityDsrEth{value: mainLiquidity}(amountToDsrEth);
+		DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrEth{value: mainLiquidity}(amountToDsrEth);
 
 		// 4. Allocate resources for the Manager(s)
 		if (managerAddresses.length > 0) {
@@ -381,7 +377,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function _chargeComissionDev(uint256 amount) private {
 		if (developerComissionAddress != address(0))
-			developerComissionAddress.transfer(amount);
+			payable(developerComissionAddress).transfer(amount);
 	}
 
 	function _rewardSdrInfiniteFarm(address investor, uint256 amountInvested) private {
@@ -428,9 +424,9 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			address sdrTokenAddress_
 		) public onlyOwner {
 			dsrHelperAddress = dsrHelperAddress_;
-			developerComissionAddress = payable(developerComissionAddress_);
+			developerComissionAddress = developerComissionAddress_;
 			exchangeRouterAddress = exchangeRouterAddress_;
-			rsdTokenAddress = rsdTokenAddress_; // 0x61ed1c66239d29cc93c8597c6167159e8f69a823
+			rsdTokenAddress = rsdTokenAddress_;
 			sdrTokenAddress = sdrTokenAddress_;
 
 			_wEth = IWETH(IUniswapV2Router02(exchangeRouterAddress_).WETH());
@@ -466,12 +462,10 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			uint256 rate;
 			bool isNormalRate;
 			if (balanceOf(dsrEthPair) == 0 || dsrEthPair == address(0)) {
-				// (rate, isNormalRate) = _getRsdEthPoolRate();
-				(rate, isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(rsdEthPair, rsdTokenAddress, address(_wEth));
+				(rate, isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(rsdEthPair, rsdTokenAddress, address(_wEth));
 				_lastBlockWithProfit = block.number;
 			} else {
-				// (rate, isNormalRate) = _getDsrEthPoolRate();
-				(rate, isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(dsrEthPair, address(this), address(_wEth));
+				(rate, isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrEthPair, address(this), address(_wEth));
 			}
 			uint256 amountInvested = isNormalRate ? (msg.value).mul(rate) : (msg.value).div(rate);
 			_mint(investor, amountInvested);
@@ -503,8 +497,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 	function receiveProfit(bool mustChargeComission) external virtual override payable lockMint {
 		require(isManagerAdded(_msgSender()) || _msgSender() == owner(), "DSR03");
 		if (msg.value > 0) {
-			// (uint256 rate, bool isNormalRate) = _getDsrEthPoolRate();
-			(uint256 rate, bool isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(dsrEthPair, address(this), address(_wEth));
+			(uint256 rate, bool isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrEthPair, address(this), address(_wEth));
 			uint256 value = isNormalRate ? (msg.value).mul(rate) : (msg.value).div(rate);
 			dividendRate = dividendRate.add(value.mul(_MAGNITUDE).div(_totalSupply));
 			totalProfit = totalProfit.add(value);
@@ -551,18 +544,17 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 			if (balanceOf(address(this)) == 0) {
 				// DSR amount in DSR contract and in DSR/RSD LP is both 0. In this case we mint DSR and deposit initial liquidity into the DSR/RSD LP with the earned RSD from PoBet, with the corresponding amount of DSR following the rate of RSD in the RSD/ETH LP
 				if (balanceOf(dsrRsdPair) == 0) {
-					// (uint256 rate, bool isNormalRate) = _getRsdEthPoolRate();
-					(uint256 rate, bool isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(rsdEthPair, rsdTokenAddress, address(_wEth));
+					(uint256 rate, bool isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(rsdEthPair, rsdTokenAddress, address(_wEth));
 					uint256 earnedRsdValue = isNormalRate ? earnedRsd.mul(rate) : earnedRsd.div(rate);
 					_mint(address(this), earnedRsdValue);
 					transfer(dsrHelperAddress, earnedRsdValue);
 					IERC20(rsdTokenAddress).transfer(dsrHelperAddress, earnedRsd);
-					DsrHelper(dsrHelperAddress).addLiquidityDsrRsd(earnedRsdValue);
+					DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrRsd(earnedRsdValue);
 				} else {
 					// DSR amount in DSR contract is 0, but we have some DSR in DSR/RSD LP. Here we buy DSR with half of earned RSD from PoBet and deposit them into the DSR/RSD LP
 					IERC20(rsdTokenAddress).transfer(dsrHelperAddress, earnedRsd);
-					if (DsrHelper(dsrHelperAddress).swapRsdForDsr(earnedRsd.div(2)))
-						DsrHelper(dsrHelperAddress).addLiquidityDsrRsd(balanceOf(dsrHelperAddress));
+					if (DsrHelper(payable(dsrHelperAddress)).swapRsdForDsr(earnedRsd.div(2)))
+						DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrRsd(balanceOf(dsrHelperAddress));
 				}
 			} else {
 				// DSR contract has some DSR amount, but we don't have liquidity in DSR/RSD LP. So, we just add initial liquidity instead
@@ -570,16 +562,15 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 					uint256 amount = balanceOf(address(this));
 					transfer(dsrHelperAddress, amount);
 					IERC20(rsdTokenAddress).transfer(dsrHelperAddress, earnedRsd);
-					DsrHelper(dsrHelperAddress).addLiquidityDsrRsd(amount);
+					DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrRsd(amount);
 				} else {
 					// DSR contract has some DSR amount and there is liquidity in DSR/RSD LP. We need to check the rate of DSR/RSD pool before add liquidity in DSR/RSD LP
-					// (uint256 rate, bool isNormalRate) = _getDsrRsdPoolRate();
-					(uint256 rate, bool isNormalRate) = DsrHelper(dsrHelperAddress).getPoolRate(dsrRsdPair, address(this), rsdTokenAddress);
+					(uint256 rate, bool isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrRsdPair, address(this), rsdTokenAddress);
 					uint256 earnedRsdValue = isNormalRate ? earnedRsd.div(2).mul(rate) : earnedRsd.div(2).div(rate);
 					uint256 minAmount = earnedRsdValue > balanceOf(address(this)) ? balanceOf(address(this)) : earnedRsdValue;
 					transfer(dsrHelperAddress, minAmount);
 					IERC20(rsdTokenAddress).transfer(dsrHelperAddress, earnedRsd);
-					DsrHelper(dsrHelperAddress).addLiquidityDsrRsd(minAmount);
+					DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrRsd(minAmount);
 				}
 			}
 		}
@@ -598,11 +589,11 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20("DeFi Syste
 
 	function setSdrTokenAddress(address sdrTokenAddress_) public onlyOwner {
 		sdrTokenAddress = sdrTokenAddress_;
-		DsrHelper(dsrHelperAddress).setSdrTokenAddress(sdrTokenAddress_);
+		DsrHelper(payable(dsrHelperAddress)).setSdrTokenAddress(sdrTokenAddress_);
 	}
 
 	function setRsdTokenAddress(address rsdTokenAddress_) public onlyOwner {
 		rsdTokenAddress = rsdTokenAddress_;
-		DsrHelper(dsrHelperAddress).setSdrTokenAddress(rsdTokenAddress_);
+		DsrHelper(payable(dsrHelperAddress)).setSdrTokenAddress(rsdTokenAddress_);
 	}
 }
