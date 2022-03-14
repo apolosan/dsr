@@ -18,16 +18,18 @@ const ASSETS = ["0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270", "0x2791Bca1f2de466
 const C_ASSETS = ["0xCa0F37f73174a28a64552D426590d3eD601ecCa1", "0xbEbAD52f3A50806b25911051BabDe6615C8e21ef"];
 
 describe("DeFiSystemReference", async () => {
-  let dsr, dsrHelper, signers, devComission;
+  let dsr, dsrHelper, signers, devComission, rsd;
 
   before(async () => {
     signers = await ethers.getSigners();
     const DSR = await ethers.getContractFactory("DeFiSystemReference");
+    const RSD = await ethers.getContractFactory("ReferenceSystemDeFi");
     const DsrHelper = await ethers.getContractFactory("DsrHelper");
     dsr = await DSR.deploy("DeFi System For Reference", "DSR");
-    dsrHelper = await DsrHelper.deploy(dsr.address, UNISWAP_ROUTER_ADDRESS, RSD_ADDRESS, SDR_ADDRESS);
+    rsd = await RSD.deploy("Reference System for DeFi", "RSD", signers[0].address);
+    dsrHelper = await DsrHelper.deploy(dsr.address, UNISWAP_ROUTER_ADDRESS, rsd.address, SDR_ADDRESS);
     devComission = await DsrHelper.deploy(ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS);
-    await dsr.connect(ethers.provider.getSigner(signers[0].address)).initializeTokenContract(dsrHelper.address, devComission.address, UNISWAP_ROUTER_ADDRESS, RSD_ADDRESS, SDR_ADDRESS);
+    await dsr.connect(ethers.provider.getSigner(signers[0].address)).initializeTokenContract(dsrHelper.address, devComission.address, UNISWAP_ROUTER_ADDRESS, rsd.address, SDR_ADDRESS);
   });
 
   it('should deploy and initialize DSR token correctly', async () => {
@@ -58,15 +60,22 @@ describe("DeFiSystemReference", async () => {
     assert(dsr_address != ZERO_ADDRESS && dsr_address != undefined);
   });
 
+  it(`can try PoBet function of RSD token contract`, async () => {
+    const tx = await dsr.tryPoBet(4);
+    if (CONSOLE_LOG)
+      console.log(tx.hash);
+    assert(tx.hash != undefined || tx.hash != '');
+  });
+
   it(`should invest resources automatically, right after it receives some ETH amount, and mint DSR tokens`, async () => {
     const Manager = await ethers.getContractFactory("Manager");
     const manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, ASSETS[0]);
     await manager.setDsrTokenAddresss(dsr.address);
     await dsr.addManager(manager.address);
     const isManagerAdded = await dsr.isManagerAdded(manager.address);
-
     const account01 = await manager.getAccount(0);
     const account02 = await manager.getAccount(1);
+    console.log("STEP #1");
     const tx = await signers[0].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH)});
     const IERC20 = await artifacts.readArtifact("IERC20");
     const InvestmentAccount = await artifacts.readArtifact("InvestmentAccount");
