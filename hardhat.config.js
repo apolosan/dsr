@@ -2,11 +2,12 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-ganache");
+require('hardhat-ethernal');
 require('hardhat-contract-sizer');
 
 const fs = require('fs');
 const path = require("path");
-const mnemonic_ = fs.readFileSync(path.resolve(__dirname, ".secret")).toString().trim();
+const mnemonic_ = fs.readFileSync(path.resolve(__dirname, ".secret_deploy")).toString().trim();
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -18,7 +19,7 @@ module.exports = {
         evmVersion: "byzantium",
 				optimizer: {
 					enabled: true,
-					runs: 6000
+					runs: 2 // 6000
 				}
 			}
 		},

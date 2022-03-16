@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha server/**/*.test.js --timeout 100000"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +13,12 @@
     "@nomiclabs/hardhat-etherscan": "^3.0.1",
     "@nomiclabs/hardhat-ganache": "^2.0.1",
     "@openzeppelin/contracts": "^4.2.0",
+    "@uniswap/sdk": "^3.0.3",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "ganache": "^7.0.3",
-    "hardhat-contract-sizer": "^2.5.0"
+    "hardhat-contract-sizer": "^2.5.0",
+    "hardhat-ethernal": "^0.5.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.5",

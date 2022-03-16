@@ -5,4 +5,15 @@ node_modules
 .secret_deploy
 hardhat_node_fork_command
 contracts/Manager.sol
+contracts/ManagerAvax.sol
 contracts/InvestmentAccount.sol
+contracts/InvestmentAccountAvax.sol
+contracts/InvestmentAccountAvaxMOCK.sol
+contracts/InvestmentAccountFantom.sol
+contracts/InvestmentAccountMOCK.sol
+contracts/ManagerAvaxMOCK.sol
+contracts/ManagerFantom.sol
+contracts/ManagerMOCK.sol
+contracts/ReferenceSystemDeFi.sol
+contracts/SystemDeFiReference.sol
+contracts/SdrHelper.sol

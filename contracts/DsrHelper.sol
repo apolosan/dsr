@@ -14,8 +14,7 @@ contract DsrHelper is Context, Ownable {
 	address immutable internal dsrTokenAddress;
 	address internal rsdTokenAddress;
 	address internal sdrTokenAddress;
-	IUniswapV2Router02 internal exchangeRouter;
-	IWETH internal _wEth;
+	address internal exchangeRouterAddress;
 
 	modifier fromDsrToken {
 		require(_msgSender() == dsrTokenAddress || _msgSender() == owner(), "DSR Helper: only DSR token contract can call this function");
@@ -24,13 +23,9 @@ contract DsrHelper is Context, Ownable {
 
 	constructor(address dsrTokenAddress_, address exchangeRouterAddress_, address rsdTokenAddress_, address sdrTokenAddress_) {
 		dsrTokenAddress = dsrTokenAddress_;
+		exchangeRouterAddress = exchangeRouterAddress_;
 		rsdTokenAddress = rsdTokenAddress_;
 		sdrTokenAddress = sdrTokenAddress_;
-		if (exchangeRouterAddress_ != address(0)) {
-			IUniswapV2Router02 exchangeRouter_ = IUniswapV2Router02(exchangeRouterAddress_);
-			exchangeRouter = exchangeRouter_;
-			_wEth = IWETH(exchangeRouter.WETH());
-		}
 	}
 
 	receive() external payable {
@@ -40,11 +35,12 @@ contract DsrHelper is Context, Ownable {
 		require(msg.data.length == 0);
 	}
 
-	function addLiquidityDsrEth(uint256 dsrTokenAmount) external payable fromDsrToken returns(bool) {
-			IERC20(dsrTokenAddress).approve(address(exchangeRouter), dsrTokenAmount);
+	function addLiquidityDsrEth() external payable fromDsrToken returns(bool) {
+			uint256 dsrTokenAmount = IERC20(dsrTokenAddress).balanceOf(address(this));
+			IERC20(dsrTokenAddress).approve(exchangeRouterAddress, dsrTokenAmount);
 			// add the liquidity for DSR/ETH pair
-			try exchangeRouter.addLiquidityETH{value: msg.value}(
-					address(this),
+			try IUniswapV2Router02(exchangeRouterAddress).addLiquidityETH{value: msg.value}(
+					dsrTokenAddress,
 					dsrTokenAmount,
 					0, // slippage is unavoidable
 					0, // slippage is unavoidable
@@ -53,14 +49,15 @@ contract DsrHelper is Context, Ownable {
 			) { return true; } catch { return false; }
 	}
 
-	function addLiquidityDsrRsd(uint256 dsrTokenAmount) external fromDsrToken returns(bool) {
-		uint256 rsdTokenAmount = IERC20(rsdTokenAddress).balanceOf(address(this));
+	function addLiquidityDsrRsd(bool halfRsd) external fromDsrToken returns(bool) {
+		uint256 dsrTokenAmount = IERC20(dsrTokenAddress).balanceOf(address(this));
+		uint256 rsdTokenAmount = halfRsd ? IERC20(rsdTokenAddress).balanceOf(address(this)) / 2 : IERC20(rsdTokenAddress).balanceOf(address(this));
 		// approve token transfer to cover all possible scenarios
-		IERC20(dsrTokenAddress).approve(address(exchangeRouter), dsrTokenAmount);
-		IERC20(rsdTokenAddress).approve(address(exchangeRouter), rsdTokenAmount);
+		IERC20(dsrTokenAddress).approve(exchangeRouterAddress, dsrTokenAmount);
+		IERC20(rsdTokenAddress).approve(exchangeRouterAddress, rsdTokenAmount);
 		// add the liquidity for DSR/RSD pair
-		try exchangeRouter.addLiquidity(
-			address(this),
+		try IUniswapV2Router02(exchangeRouterAddress).addLiquidity(
+			dsrTokenAddress,
 			rsdTokenAddress,
 			dsrTokenAmount,
 			rsdTokenAmount,
@@ -71,15 +68,15 @@ contract DsrHelper is Context, Ownable {
 		) { return true; } catch { return false; }
 	}
 
-	function addLiquidityDsrSdr(uint256 dsrTokenAmount) external fromDsrToken returns(bool) {
+	function addLiquidityDsrSdr() external fromDsrToken returns(bool) {
+		uint256 dsrTokenAmount = IERC20(dsrTokenAddress).balanceOf(address(this));
 		uint256 sdrTokenAmount = IERC20(sdrTokenAddress).balanceOf(address(this));
 		// approve token transfer to cover all possible scenarios
-		IERC20(dsrTokenAddress).approve(address(exchangeRouter), dsrTokenAmount);
-		IERC20(sdrTokenAddress).approve(address(exchangeRouter), sdrTokenAmount);
-
+		IERC20(dsrTokenAddress).approve(exchangeRouterAddress, dsrTokenAmount);
+		IERC20(sdrTokenAddress).approve(exchangeRouterAddress, sdrTokenAmount);
 		// add the liquidity for DSR/SDR pair
-		try exchangeRouter.addLiquidity(
-			address(this),
+		try IUniswapV2Router02(exchangeRouterAddress).addLiquidity(
+			dsrTokenAddress,
 			sdrTokenAddress,
 			dsrTokenAmount,
 			sdrTokenAmount,
@@ -103,13 +100,14 @@ contract DsrHelper is Context, Ownable {
 		}
 	}
 
-	function swapEthForRsd(uint256 ethAmount) external virtual fromDsrToken returns(bool) {
+	function swapEthForRsd() external virtual fromDsrToken returns(bool) {
+		uint256 ethAmount = address(this).balance;
 		// generate the pair path of ETH -> RSD on exchange router contract
 		address[] memory path = new address[](2);
-		path[0] = address(_wEth);
+		path[0] = IUniswapV2Router02(exchangeRouterAddress).WETH();
 		path[1] = rsdTokenAddress;
 
-		try exchangeRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}(
+		try IUniswapV2Router02(exchangeRouterAddress).swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}(
 			0, // accept any amount of RSD
 			path,
 			address(this),
@@ -117,15 +115,16 @@ contract DsrHelper is Context, Ownable {
 		) { return true; } catch { return false; }
 	}
 
-	function swapRsdForDsr(uint256 tokenAmount) external fromDsrToken returns(bool) {
+	function swapRsdForDsr() external fromDsrToken returns(bool) {
+		uint256 tokenAmount = IERC20(rsdTokenAddress).balanceOf(address(this));
 		// generate the pair path of RSD -> DSR on exchange router contract
 		address[] memory path = new address[](2);
 		path[0] = rsdTokenAddress;
-		path[1] = address(this);
+		path[1] = dsrTokenAddress;
 
-		IERC20(rsdTokenAddress).approve(address(exchangeRouter), tokenAmount);
+		IERC20(rsdTokenAddress).approve(exchangeRouterAddress, tokenAmount);
 
-		try exchangeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+		try IUniswapV2Router02(exchangeRouterAddress).swapExactTokensForTokensSupportingFeeOnTransferTokens(
 			tokenAmount,
 			0, // accept any amount of DSR
 			path,
@@ -134,15 +133,16 @@ contract DsrHelper is Context, Ownable {
 		) { return true; } catch { return false; }
 	}
 
-	function swapRsdForSdr(uint256 tokenAmount) external fromDsrToken returns(bool) {
+	function swapRsdForSdr() external fromDsrToken returns(bool) {
+		uint256 tokenAmount = IERC20(rsdTokenAddress).balanceOf(address(this));
 		// generate the pair path of RSD -> SDR on exchange router contract
 		address[] memory path = new address[](2);
 		path[0] = rsdTokenAddress;
 		path[1] = sdrTokenAddress;
 
-		IERC20(rsdTokenAddress).approve(address(exchangeRouter), tokenAmount);
+		IERC20(rsdTokenAddress).approve(exchangeRouterAddress, tokenAmount);
 
-		try exchangeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+		try IUniswapV2Router02(exchangeRouterAddress).swapExactTokensForTokensSupportingFeeOnTransferTokens(
 			tokenAmount,
 			0, // accept any amount of SDR
 			path,
