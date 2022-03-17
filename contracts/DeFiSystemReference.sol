@@ -65,12 +65,11 @@ gambling and also to incentivize the crypto ecosystem by rewarding miners.
 ---------------------------------------------------------------------------------------
 
 REVERT/REQUIRE CODE ERRORS:
-DSR01: PoBet is tried only once at a time
-DSR02: please refer you can call this function only once at a time until it is fully executed
-DSR03: only managers can call this function
-DSR04: manager was added already
-DSR05: informed manager does not exist in this contract anymore
-DSR06: the minimum amount of active managers is one
+DSR01: please refer you can call this function only once at a time until it is fully executed
+DSR02: only managers can call this function
+DSR03: manager was added already
+DSR04: informed manager does not exist in this contract anymore
+DSR05: the minimum amount of active managers is one
 ---------------------------------------------------------------------------------------
 */
 pragma solidity >=0.8.0;
@@ -84,7 +83,6 @@ import "./IDeFiSystemReference.sol";
 import "./IWETH.sol";
 import "./IManager.sol";
 import "./DsrHelper.sol";
-import "hardhat/console.sol";
 
 contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 
@@ -139,7 +137,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 	event ProfitReceived(uint256 amount);
 
 	modifier lockMint() {
-		require(!_isMintLocked, "DSR02");
+		require(!_isMintLocked, "DSR01");
 		_isMintLocked = true;
 		_;
 		_isMintLocked = false;
@@ -389,7 +387,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 	}
 
 	function addManager(address manager) public onlyOwner {
-		require(!isManagerAdded(manager), "DSR04");
+		require(!isManagerAdded(manager), "DSR03");
 		managerAddresses.push(manager);
 	}
 
@@ -500,7 +498,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 	}
 
 	function receiveProfit(bool mustChargeComission) external virtual override payable lockMint {
-		require(isManagerAdded(_msgSender()) || _msgSender() == owner(), "DSR03");
+		require(isManagerAdded(_msgSender()) || _msgSender() == owner(), "DSR02");
 		if (msg.value > 0) {
 			(uint256 rate, bool isNormalRate) = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrEthPair, address(this), address(_wEth));
 			uint256 value = isNormalRate ? (msg.value).mul(rate) : (msg.value).div(rate);
@@ -514,8 +512,8 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 	}
 
 	function removeManager(address manager) public onlyOwner {
-		require(isManagerAdded(manager), "DSR05");
-		require(managerAddresses.length > 1, "DSR06");
+		require(isManagerAdded(manager), "DSR04");
+		require(managerAddresses.length > 1, "DSR05");
 		IManager(manager).withdrawInvestment();
 		IManager(manager).setDsrTokenAddresss(address(0));
 		address[] storage newManagerAddresses;

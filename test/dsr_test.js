@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require("path");
 const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
 
-const CONSOLE_LOG = false;
+const CONSOLE_LOG = true;
 const ALREADY_DEPLOYED_RSD = false;
 const ETH = "10.0";
 
@@ -372,5 +372,7 @@ describe("DeFiSystemReference", async () => {
       console.log(`PROFIT BALANCE: ${b02}`);
       console.log(`BURNED BALANCE: ${b03}`);
     }
+
+    assert(b01 > 0 && b02 > b01 && b03 == 0);
   });
 });
