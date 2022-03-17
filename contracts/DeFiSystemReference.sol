@@ -241,8 +241,12 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 	}
 
 	function balanceOf(address account) public view virtual override returns (uint256) {
-			if (account == address(this) || account == dsrHelperAddress)
-				// DSR smart contract and DSR Helper do not participate in the profit sharing
+			if (account == address(this)
+				|| account == dsrHelperAddress
+				|| account == dsrEthPair
+				|| account == dsrRsdPair
+				|| account == dsrSdrPair)
+				// DSR smart contracts and DSR Helper do not participate in the profit sharing
 				return _balances[account];
 			else
 				return (potentialBalanceOf(account).sub(_currentProfitSpent[account]));
@@ -526,7 +530,11 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 	}
 
 	function potentialProfitPerAccount(address account) public view returns(uint256) {
-		if (account == address(this) || account == dsrHelperAddress)
+		if (account == address(this)
+			|| account == dsrHelperAddress
+			|| account == dsrEthPair
+			|| account == dsrRsdPair
+			|| account == dsrSdrPair)
 			return 0;
 		else
 			return (_balances[account].mul(dividendRate).div(_MAGNITUDE));
