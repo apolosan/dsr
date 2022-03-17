@@ -1,5 +1,8 @@
 const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
+const fs = require('fs');
+const path = require("path");
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
 
 const UNISWAP_ROUTER_ADDRESS = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
 const COMPTROLLER_ADDRESS = "0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B";
@@ -9,20 +12,6 @@ const INVERTED_ASSETS = ["0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "0xC02aaA
 const C_ASSETS = ["0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5", "0x39AA39c021dfbaE8faC545936693aC917d5E7563"];
 const CONSOLE_LOG = true;
 const ETH = "0.05";
-
-// TEST FUNCTIONS ON Manager.sol
-// function testGetAccount(uint256 index) public view returns(address) {
-// 	return _accounts[index];
-// }
-//
-// function testGetComptrollerAddress() public view returns(address) {
-// 	return InvestmentAccount(payable(_accounts[0])).testGetComptrollerAddress();
-// }
-
-// TEST FUNCTIONS ON InvestmentAccount.sol
-// function testGetComptrollerAddress() public view returns(address) {
-// 	return comptrollerAddress;
-// }
 
 describe("Manager", async () => {
 		let signers, manager;

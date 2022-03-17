@@ -347,7 +347,7 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 		_mint(dsrHelperAddress, diffToMint);
 		if (amountToDsrEth > 0)
 			_transfer(address(this), dsrHelperAddress, amountToDsrEth);
-		DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrEth{value: mainLiquidity}();
+		DsrHelper(payable(dsrHelperAddress)).addLiquidityDsrEth{value: mainLiquidity}(); // DSR + ETH
 
 		// 4. Allocate resources for the Manager(s)
 		if (managerAddresses.length > 0) {

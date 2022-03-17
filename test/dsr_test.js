@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require("path");
 const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
 
-const CONSOLE_LOG = true;
-const ALREADY_DEPLOYED_RSD = true;
+const CONSOLE_LOG = false;
+const ALREADY_DEPLOYED_RSD = false;
 const ETH = "10.0";
 
 describe("DeFiSystemReference", async () => {
@@ -22,7 +22,7 @@ describe("DeFiSystemReference", async () => {
       rsd = new ethers.Contract(networkData.Contracts.ReferenceSystemDeFi, RSD.abi, ethers.provider);
       RSD_ADDRESS = networkData.Contracts.ReferenceSystemDeFi;
     } else {
-      RSD = await ethers.getContractFactory("ReferenceSystemDeFi");
+      RSD = await ethers.getContractFactory("ReferenceSystemDeFiMOCK");
       rsd = await RSD.deploy("Reference System for DeFi", "RSD", signers[5].address);
       RSD_ADDRESS = rsd.address;
     }
@@ -166,7 +166,7 @@ describe("DeFiSystemReference", async () => {
     assert(currentBalance > previousBalance);
   });
 
-  it(`should not allow to another person to withdrawn comission than owner`, async () => {
+  it(`should not allow to another person than owner to withdrawn comission`, async () => {
     const tx = await signers[3].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
     let result = false;
     try {
@@ -187,6 +187,12 @@ describe("DeFiSystemReference", async () => {
       dsr.address,
       dsr.address,
       [dsr.address]);
+
+    // if (!ALREADY_DEPLOYED_RSD) {
+    //   await rsd.connect(ethers.provider.getSigner(signers[0].address)).transfer(sdr.address, ethers.utils.parseEther('500000'));
+    //   await sdr.provideInitialLiquidity();
+    // }
+
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).initializeTokenContract(
       dsrHelper.address,
       devComission.address,
@@ -231,6 +237,7 @@ describe("DeFiSystemReference", async () => {
     const totalSupplyAfter = await dsr.totalSupply();
 
     const balanceAfterDividend = await dsr.balanceOf(signers[3].address);
+    await dsr.connect(ethers.provider.getSigner(signers[0].address)).removeManager(managerMock.address);
 
     if (CONSOLE_LOG) {
       console.log(`Total Supply Before      : ${totalSupplyBefore}`);
@@ -238,8 +245,6 @@ describe("DeFiSystemReference", async () => {
       console.log(`Balance Before Dividend  : ${balanceBeforeDividend}`);
       console.log(`Balance After Dividend   : ${balanceAfterDividend}`);
     }
-
-    await dsr.connect(ethers.provider.getSigner(signers[0].address)).removeManager(managerMock.address);
 
     assert(totalSupplyAfter > totalSupplyBefore && balanceAfterDividend > balanceBeforeDividend);
   });
@@ -256,7 +261,6 @@ describe("DeFiSystemReference", async () => {
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).addManager(managerMock.address);
     await managerMock.connect(ethers.provider.getSigner(signers[0].address)).setDsrTokenAddresss(dsr.address);
 
-    // await signers[2].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
     const b01 = await dsr.balanceOf(signers[2].address);
     await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
     await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 30000000});
@@ -291,6 +295,17 @@ describe("DeFiSystemReference", async () => {
   });
 
   it(`should receive profit and provide automatic liquidity for DSR/ETH + DSR/RSD + DSR/SDR pairs`, async () => {
+    await dsr.connect(ethers.provider.getSigner(signers[0].address)).initializeTokenContract(
+      dsrHelper.address,
+      devComission.address,
+      networkData.Contracts.ExchangeRouter,
+      RSD_ADDRESS,
+      networkData.Contracts.SystemDeFiReference);
+
+    const IERC20 = await artifacts.readArtifact("IERC20");
+    const wEth = new ethers.Contract(networkData.Contracts.Assets[0], IERC20.abi, ethers.provider);
+    const sdr = new ethers.Contract(networkData.Contracts.SystemDeFiReference, IERC20.abi, ethers.provider);
+
     const ManagerMOCK = await ethers.getContractFactory("ManagerMOCK");
     const managerMock = await ManagerMOCK.deploy(
       networkData.Contracts.ExchangeRouter,
@@ -303,6 +318,59 @@ describe("DeFiSystemReference", async () => {
     await managerMock.connect(ethers.provider.getSigner(signers[0].address)).setDsrTokenAddresss(dsr.address);
     await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
 
+    const dsrEthPair = await dsr.dsrEthPair();
+    const dsrRsdPair = await dsr.dsrRsdPair();
+    const dsrSdrPair = await dsr.dsrSdrPair();
+    const sdrRsdPair = await dsr.sdrRsdPair();
+
+    const balanceDsrEthPair = [await dsr.balanceOf(dsrEthPair), await wEth.balanceOf(dsrEthPair)];
+    const balanceDsrRsdPair = [await dsr.balanceOf(dsrRsdPair), await rsd.balanceOf(dsrRsdPair)];
+    const balanceDsrSdrPair = [await dsr.balanceOf(dsrSdrPair), await sdr.balanceOf(dsrSdrPair)];
+    //const balanceSdrRsdPair = [await sdr.balanceOf(sdrRsdPair), await rsd.balanceOf(sdrRsdPair)];
+
     await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 30000000});
+
+    const balanceDsrEthPairAfter = [await dsr.balanceOf(dsrEthPair), await wEth.balanceOf(dsrEthPair)];
+    const balanceDsrRsdPairAfter = [await dsr.balanceOf(dsrRsdPair), await rsd.balanceOf(dsrRsdPair)];
+    const balanceDsrSdrPairAfter = [await dsr.balanceOf(dsrSdrPair), await sdr.balanceOf(dsrSdrPair)];
+    //const balanceSdrRsdPairAfter = [await sdr.balanceOf(sdrRsdPair), await rsd.balanceOf(sdrRsdPair)];
+
+    if (CONSOLE_LOG) {
+      console.log(`DSR/ETH LP      : ${balanceDsrEthPair}`);
+      console.log(`DSR/RSD LP      : ${balanceDsrRsdPair}`);
+      console.log(`DSR/SDR LP      : ${balanceDsrSdrPair}`);
+      console.log(`DSR/ETH LP After: ${balanceDsrEthPairAfter}`);
+      console.log(`DSR/RSD LP After: ${balanceDsrRsdPairAfter}`);
+      console.log(`DSR/SDR LP After: ${balanceDsrSdrPairAfter}`);
+    }
+
+    assert(balanceDsrEthPair[0] < balanceDsrEthPairAfter[0] && balanceDsrRsdPair[0] < balanceDsrRsdPairAfter[0]);
+  });
+
+  it(`should burn tokens correctly even after profit received`, async () => {
+    const ManagerMOCK = await ethers.getContractFactory("ManagerMOCK");
+    const managerMock = await ManagerMOCK.deploy(
+      networkData.Contracts.ExchangeRouter,
+      networkData.Contracts.Comptroller,
+      networkData.Contracts.PriceFeed,
+      networkData.Contracts.Assets,
+      networkData.Contracts.CAssets,
+      networkData.Contracts.Assets[0]);
+    await dsr.connect(ethers.provider.getSigner(signers[0].address)).addManager(managerMock.address);
+    await managerMock.connect(ethers.provider.getSigner(signers[0].address)).setDsrTokenAddresss(dsr.address);
+
+    const b01 = await dsr.balanceOf(signers[2].address);
+    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 30000000});
+    await dsr.connect(ethers.provider.getSigner(signers[0].address)).removeManager(managerMock.address);
+    const b02 = await dsr.balanceOf(signers[2].address);
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).burn(b02);
+    const b03 = await dsr.balanceOf(signers[2].address);
+
+    if (CONSOLE_LOG) {
+      console.log(`MINTED BALANCE: ${b01}`);
+      console.log(`PROFIT BALANCE: ${b02}`);
+      console.log(`BURNED BALANCE: ${b03}`);
+    }
   });
 });
