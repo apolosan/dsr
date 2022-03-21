@@ -1,0 +1,13 @@
+{
+  "Contracts": {
+    "ExchangeRouter": "",
+    "Comptroller": "",
+    "PriceFeed": "",
+    "ReferenceSystemDeFi": "",
+    "SystemDeFiReference": "",
+    "Managers": [""],
+    "Assets": ["", ""],
+    "CAssets": ["", ""]
+  },
+  "ZeroAddress": "0x0000000000000000000000000000000000000000"
+}

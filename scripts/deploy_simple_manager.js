@@ -8,7 +8,7 @@ async function main() {
 	console.log(`Deploying contracts with the acount: ${deployer.address}`);
 	console.log(`Account balance: ${(await deployer.getBalance()).toString()}`);
 
-	const Manager = await ethers.getContractFactory("Manager");
+	const Manager = await ethers.getContractFactory("SimpleManager");
 	const manager = await Manager.deploy(
 		networkData.Contracts.ExchangeRouter,
 		networkData.Contracts.Comptroller,
@@ -18,7 +18,7 @@ async function main() {
 		networkData.Contracts.Assets[0]
 	);
 
-	console.log(`First Manager address: ${manager.address}`);
+	console.log(`SimpleManager address: ${manager.address}`);
 }
 
 main()

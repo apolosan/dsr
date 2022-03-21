@@ -270,8 +270,10 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 		uint256 liqLocked = profit.mul(liquidityProfitShare).div(_FACTOR);
 
 		// 2. Separate the profit amount for checkers
-		profit = profit.sub(checkComission);
-		_chargeComissionCheck(checkComission);
+		if (!isManagerAdded(_msgSender())) {
+			profit = profit.sub(checkComission);
+			_chargeComissionCheck(checkComission);
+		}
 
 		// 3. Pay commission for the developer team
 		if (mustChargeComission) {
@@ -519,11 +521,15 @@ contract DeFiSystemReference is IDeFiSystemReference, Context, ERC20, Ownable {
 		require(isManagerAdded(manager), "DSR04");
 		require(managerAddresses.length > 1, "DSR05");
 		IManager(manager).withdrawInvestment();
-		IManager(manager).setDsrTokenAddresss(address(0));
-		address[] storage newManagerAddresses;
+		IManager(manager).setDsrTokenAddress(address(0));
+		uint256 size = managerAddresses.length - 1;
+		address[] memory newManagerAddresses = new address[](size);
+		uint256 j = 0;
 		for (uint256 i = 0; i < managerAddresses.length; i++) {
-			if (manager != managerAddresses[i])
-				newManagerAddresses.push(managerAddresses[i]);
+			if (manager != managerAddresses[i]) {
+				newManagerAddresses[j] = managerAddresses[i];
+				j++;
+			}
 		}
 		managerAddresses = newManagerAddresses;
 		_allocateResources();

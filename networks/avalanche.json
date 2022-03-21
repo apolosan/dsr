@@ -1,13 +1,13 @@
 {
   "Contracts": {
-    "ExchangeRouter": "",
-    "Comptroller": "",
-    "PriceFeed": "",
+    "ExchangeRouter": "0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106",
+    "Comptroller": "0x2eE80614Ccbc5e28654324a66A396458Fa5cD7Cc",
+    "PriceFeed": "0x0980f2F0D2af35eF2c4521b2342D59db575303F7",
     "ReferenceSystemDeFi": "0x61ed1c66239d29cc93c8597c6167159e8f69a823",
     "SystemDeFiReference": "",
     "Managers": [""],
-    "Assets": ["", ""],
-    "CAssets": ["", ""]
+    "Assets": ["0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", "0xc7198437980c041c805A1EDcbA50c1Ce5db95118"],
+    "CAssets": ["0xb3c68d69E95B095ab4b33B4cB67dBc0fbF3Edf56", "0xCEb1cE674f38398432d20bc8f90345E91Ef46fd3"]
   },
   "ZeroAddress": "0x0000000000000000000000000000000000000000"
 }

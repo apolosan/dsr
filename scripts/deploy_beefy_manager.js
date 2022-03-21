@@ -8,14 +8,15 @@ async function main() {
 	console.log(`Deploying contracts with the acount: ${deployer.address}`);
 	console.log(`Account balance: ${(await deployer.getBalance()).toString()}`);
 
-	const Manager = await ethers.getContractFactory("Manager");
+	const Manager = await ethers.getContractFactory("BeefyManager");
 	const manager = await Manager.deploy(
 		networkData.Contracts.ExchangeRouter,
 		networkData.Contracts.Comptroller,
 		networkData.Contracts.PriceFeed,
 		networkData.Contracts.Assets,
 		networkData.Contracts.CAssets,
-		networkData.Contracts.Assets[0]
+		networkData.Contracts.Assets[0],
+    networkData.Contracts.BeefyVaults[0]
 	);
 
 	console.log(`First Manager address: ${manager.address}`);

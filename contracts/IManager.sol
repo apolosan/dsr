@@ -6,7 +6,7 @@ interface IManager {
 	function getExposureOfAccounts() external view returns(uint256, uint256);
 	function queryPrice() external view returns(uint256);
 	function receiveResources() external payable;
-	function setDsrTokenAddresss(address) external;
+	function setDsrTokenAddress(address) external;
 	function withdrawInvestment() external;
 	function convertETHtoUSD(uint256) external view returns(uint256);
 	function convertUSDtoETH(uint256) external view returns(uint256);

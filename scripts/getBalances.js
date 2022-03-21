@@ -4,9 +4,9 @@ const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../netwo
 
 const main = async () => {
   const [deployer] = await ethers.getSigners();
-  const IManager = await artifacts.readArtifact("IManager");
+  const IManager = await artifacts.readArtifact("BasicManager");
   const manager = new ethers.Contract(networkData.Contracts.Managers[0], IManager.abi, ethers.provider);
-  const tx = await manager.getExposureOfAccounts();
+  const tx = await manager.getBalances();
   console.log(tx);
 }
 
