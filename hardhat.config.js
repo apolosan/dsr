@@ -2,8 +2,9 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-ganache");
-require('hardhat-ethernal');
+//require('hardhat-ethernal');
 require('hardhat-contract-sizer');
+require("hardhat-gas-reporter");
 
 const fs = require('fs');
 const path = require("path");
@@ -19,7 +20,7 @@ module.exports = {
         evmVersion: "byzantium",
 				optimizer: {
 					enabled: true,
-					runs: 6000
+					runs: 12000
 				}
 			}
 		},
