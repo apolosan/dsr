@@ -1,0 +1,15 @@
+{
+  "Contracts": {
+    "ExchangeRouter": "0xa6AD18C2aC47803E193F75c3677b14BF19B94883",
+    "Comptroller": "",
+    "PriceFeed": "",
+    "ReferenceSystemDeFi": "0x4C8D69cCF52144952e0dF2230275C7059C536805",
+    "SystemDeFiReference": "0xe94a1653e8956408959f65B68B836E4a506f699b",
+    "Managers": [""],
+    "Assets": ["0xf1277d1Ed8AD466beddF92ef448A132661956621", "0x4C8D69cCF52144952e0dF2230275C7059C536805"],
+    "CAssets": ["", ""],
+    "FarmContract": "",
+    "Marketing": ""
+  },
+  "ZeroAddress": "0x0000000000000000000000000000000000000000"
+}

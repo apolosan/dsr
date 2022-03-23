@@ -20,7 +20,7 @@ module.exports = {
         evmVersion: "byzantium",
 				optimizer: {
 					enabled: true,
-					runs: 12000
+					runs: 20000000
 				}
 			}
 		},
@@ -108,19 +108,37 @@ module.exports = {
 		fantom: {
 			url: `https://rpc.ftm.tools`,
 			accounts: {mnemonic: mnemonic_},
-			blockGasLimit: 5000000,
+			blockGasLimit: 6000000,
 			gas: 5000000,
 			gasPrice: "auto",
 			network_id: 250,
       timeout: 40000
 		},
+    fantom_testnet: {
+      url: `https://rpc.testnet.fantom.network`,
+      accounts: {mnemonic: mnemonic_},
+      blockGasLimit: 12450000,
+      gas: 5000000,
+      gasPrice: "auto",
+      network_id: 4002,
+      timeout: 40000
+    },
     polygon: {
       url: `https://polygon-rpc.com/`,
       accounts: {mnemonic: mnemonic_},
-      blockGasLimit: 5000000,
+      blockGasLimit: 6000000,
       gas: 5000000,
       gasPrice: "auto",
       network_id: 137,
+      timeout: 40000
+    },
+    polygon_testnet: {
+      url: `https://rpc-mumbai.maticvigil.com`,
+      accounts: {mnemonic: mnemonic_},
+      blockGasLimit: 6000000,
+      gas: 5000000,
+      gasPrice: "auto",
+      network_id: 80001,
       timeout: 40000
     },
     avalanche: {
