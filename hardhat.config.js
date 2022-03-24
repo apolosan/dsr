@@ -20,13 +20,13 @@ module.exports = {
         evmVersion: "byzantium",
 				optimizer: {
 					enabled: true,
-					runs: 20000000
+					runs: 1000000
 				}
 			}
 		},
 	networks: {
 		development: {
-			url: `http://127.0.0.1:8545`,
+      url: `http://127.0.0.1:8545`,
 			mnemonic: mnemonic_,
 			gas: "auto",
 			gasPrice: "auto",
@@ -47,7 +47,7 @@ module.exports = {
 			accounts: {mnemonic: mnemonic_},
 			blockGasLimit: 12450000,
 			gas: 12450000,
-			gasPrice: "auto",
+			gasPrice: 22358844111,
       timeout: 40000
 		},
 		eth_mainnet: {

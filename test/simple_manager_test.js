@@ -7,13 +7,13 @@ const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../netwo
 const CONSOLE_LOG = true;
 const ETH = "10";
 
-describe("Manager", async () => {
+describe("SimpleManager", async () => {
 		let signers, manager;
 		const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
-				Manager = await ethers.getContractFactory("ManagerBsc");
+				Manager = await ethers.getContractFactory("SimpleManager");
 				manager = await Manager.deploy(
 					networkData.Contracts.ExchangeRouter,
 					networkData.Contracts.Comptroller,
@@ -90,70 +90,42 @@ describe("Manager", async () => {
 		});
 
 		it(`should invest resources automatically, right after it receives some ETH amount`, async () => {
-			const account01 = await manager.getAccount(0);
-			const account02 = await manager.getAccount(1);
 			const tx = await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
-			const IERC20 = await artifacts.readArtifact("IERC20");
-			const InvestmentAccount = await artifacts.readArtifact("InvestmentAccount");
-			const cEth = new ethers.Contract(networkData.Contracts.CAssets[0], IERC20.abi, ethers.provider);
-			const cUsd = new ethers.Contract(networkData.Contracts.CAssets[1], IERC20.abi, ethers.provider);
-			const A01 = new ethers.Contract(account01, InvestmentAccount.abi, ethers.provider);
-			const A02 = new ethers.Contract(account02, InvestmentAccount.abi, ethers.provider);
-			const balance_cETH = await cEth.balanceOf(account01);
-			const balance_cUSD = await cUsd.balanceOf(account02);
-			const borrowedBalanceAccount01 = await A01.balanceETH();
-			const borrowedBalanceAccount02 = await A02.balanceUSD();
-			if (CONSOLE_LOG) {
-				const exposure = await manager.getExposureOfAccounts();
+			const exposure = await manager.getExposureOfAccounts();
+			if (CONSOLE_LOG)
 				console.log(exposure);
-				console.log(`Balance of Account #1 - ${account01}: ${balance_cETH}`);
-				console.log(`Balance of Account #2 - ${account02}: ${balance_cUSD}`);
-				console.log(`Borrow Balance of Account #1 - ${account01}: ${borrowedBalanceAccount01}`);
-				console.log(`Borrow Balance of Account #2 - ${account02}: ${borrowedBalanceAccount02}`);
-			}
-			assert(balance_cETH != 0 && balance_cUSD != 0 && borrowedBalanceAccount01 != 0 && borrowedBalanceAccount02 != 0);
+			assert(exposure[0] > 0 && exposure[1] > 0);
 		});
 
 		it(`should adjust the exposure according to the price movement`, async () => {
-			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
-			const previousExposure = await manager.getExposureOfAccounts();
-			const IUniswapV2Router02 = await artifacts.readArtifact("IUniswapV2Router02");
-			const exchangeRouter_ = new ethers.Contract(networkData.Contracts.ExchangeRouter, IUniswapV2Router02.abi, ethers.provider);
-			const exchangeRouter = exchangeRouter_.connect(ethers.provider.getSigner(signers[0].address));
-			await exchangeRouter.swapExactETHForTokensSupportingFeeOnTransferTokens(0, networkData.Contracts.Assets, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
-			const currentExposure = await manager.getExposureOfAccounts();
-			if (CONSOLE_LOG) {
-				console.log(previousExposure);
-				console.log(currentExposure);
-			}
-			assert(previousExposure[0] < currentExposure[0] && previousExposure[1] > currentExposure[1]);
-		});
+			const SimpleManagerMOCK = await ethers.getContractFactory("SimpleManagerMOCK");
+			const managerMock = await SimpleManagerMOCK.deploy(
+				networkData.Contracts.ExchangeRouter,
+				networkData.Contracts.Comptroller,
+				networkData.Contracts.PriceFeed,
+				networkData.Contracts.Assets,
+				networkData.Contracts.CAssets,
+				networkData.Contracts.Assets[0]);
 
-		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (1%)`, async () => {
-			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
-			const previousExposure = await manager.getExposureOfAccounts();
-			const IUniswapV2Router02_ = await artifacts.readArtifact("IUniswapV2Router02");
-			const router_ = new ethers.Contract(networkData.Contracts.ExchangeRouter, IUniswapV2Router02_.abi, ethers.provider);
-			const router = router_.connect(ethers.provider.getSigner(signers[0].address));
-			await router.swapExactETHForTokensSupportingFeeOnTransferTokens(0, networkData.Contracts.Assets, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
-			const currentExposure = await manager.getExposureOfAccounts();
-			await manager.testSetExposureDifference(1);
-			const previousBalance = await ethers.provider.getBalance(signers[0].address);
-			await manager.checkForProfit();
-			const currentBalance = await ethers.provider.getBalance(signers[0].address);
-			const rebalancedExposure = await manager.getExposureOfAccounts();
+			await signers[0].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH)});
+			const oldPrice = await managerMock.queryPrice();
+			const previousExposure = await managerMock.getExposureOfAccounts();
+			const previousBalanceOwner = await ethers.provider.getBalance(signers[0].address);
+			await managerMock.checkForProfit();
+			await managerMock.setPercentage(10);
+			await managerMock.checkForProfit();
+			const currentBalanceOwner = await ethers.provider.getBalance(signers[0].address);
+			const newPrice = await managerMock.queryPrice();
+			const currentExposure = await managerMock.getExposureOfAccounts();
 			if (CONSOLE_LOG) {
+				console.log(`Old Price: ${oldPrice}`);
+				console.log(`New Price: ${newPrice}`);
 				console.log(previousExposure);
 				console.log(currentExposure);
-				console.log(rebalancedExposure);
-				console.log(previousBalance);
-				console.log(currentBalance);
+				console.log(`Previous Balance: ${previousBalanceOwner}`);
+				console.log(`Current Balance: ${currentBalanceOwner}`);
 			}
-			assert(previousExposure[0] < currentExposure[0] &&
-				currentExposure[0].toString() != rebalancedExposure[0].toString() &&
-				previousExposure[1] > currentExposure[1] &&
-				currentExposure[1].toString() != rebalancedExposure[1].toString() &&
-				currentBalance > previousBalance);
+			assert(previousExposure[0] > currentExposure[0] && previousExposure[1] < currentExposure[1]);
 		});
 
 		it(`should be able to reset positions and withdraw all the investment`, async () => {

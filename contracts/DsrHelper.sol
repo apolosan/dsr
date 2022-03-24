@@ -10,7 +10,7 @@ import "./IWETH.sol";
 
 contract DsrHelper is Context, Ownable {
 
-	address immutable internal dsrTokenAddress;
+	address internal dsrTokenAddress;
 	address internal rsdTokenAddress;
 	address internal sdrTokenAddress;
 	address internal exchangeRouterAddress;
@@ -159,6 +159,10 @@ contract DsrHelper is Context, Ownable {
 			address(this),
 			block.timestamp
 		) { return true; } catch { return false; }
+	}
+
+	function setDsrTokenAddress(address dsrTokenAddress_) external fromDsrToken {
+		dsrTokenAddress = dsrTokenAddress_;
 	}
 
 	function setSdrTokenAddress(address sdrTokenAddress_) external fromDsrToken {

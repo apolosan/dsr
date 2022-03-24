@@ -1,5 +1,5 @@
 // https://trufflesuite.com/blog/introducing-ganache-7/index.html#5-mine-blocks-instantly-at-interval-or-on-demand
-
+// npx hardhat node --show-stack-traces --fork https://rpc.ftm.tools
 const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 
@@ -10,16 +10,16 @@ const ASSETS = ["0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83", "0x04068DA6C83AFCF
 const INVERTED_ASSETS = ["0x04068DA6C83AFCFA0e13ba15A6696662335D5B75", "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83"];
 const C_ASSETS = ["0xd528697008aC67A21818751A5e3c58C8daE54696", "0x328A7b4d538A2b3942653a9983fdA3C12c571141"];
 const CONSOLE_LOG = true;
-const ETH = "0.1";
+const ETH = "50";
 
-describe("Manager", async () => {
+describe("ManagerFantom", async () => {
 		let signers, manager;
 		const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
-				Manager = await ethers.getContractFactory("Manager");
-				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, ZERO_ADDRESS);
+				ManagerFantom = await ethers.getContractFactory("ManagerFantom");
+				manager = await ManagerFantom.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, ASSETS[0]);
 		});
 
 		it("should deploy manager contract correctly", async () => {
@@ -35,9 +35,9 @@ describe("Manager", async () => {
 		});
 
 		it("should query price from price feed contract correctly", async () => {
-			const price = await manager.queryPriceFromAsset(C_ASSETS[0]);
+			const price = await manager.queryPrice();
 			if (CONSOLE_LOG) {
-				console.log(`Price ETH: ${price}`);
+				console.log(`Price FTM: ${price}`);
 			}
 			assert(price != undefined && price != 0);
 		});
@@ -50,21 +50,21 @@ describe("Manager", async () => {
 		it(`should show the assets pair address obtained from exchange router`, async () => {
 			const pairAddress = await manager.getPairAddress();
 			if (CONSOLE_LOG)
-				console.log(`ETH|USD Pair Address: ${pairAddress}`);
+				console.log(`FTM|USD Pair Address: ${pairAddress}`);
 			assert(pairAddress != '' || pairAddress != ZERO_ADDRESS);
 		});
 
 		it(`should query price of assets correctly`, async () => {
 			const price = await manager.queryPrice();
 			if (CONSOLE_LOG)
-				console.log(`ETH|USD Price: ${price}`);
+				console.log(`FTM|USD Price: ${price}`);
 			assert(price != 0);
 		});
 
 		it(`should update the DSR token address correctly`, async () => {
 			const oldDsrAddress = await manager.getDsrTokenAddress();
 			const dsrAddress = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
-			await manager.setDsrTokenAddresss(dsrAddress);
+			await manager.setDsrTokenAddress(dsrAddress);
 			const newDsrAddress = await manager.getDsrTokenAddress();
 			if (CONSOLE_LOG)
 				console.log(`DSR Token Address: ${newDsrAddress}`);
@@ -88,7 +88,7 @@ describe("Manager", async () => {
 			assert(comptrollerAddress == COMPTROLLER_ADDRESS);
 		});
 
-		it(`should invest resources automatically, right after it receives some ETH amount`, async () => {
+		it(`should invest resources automatically, right after it receives some FTM amount`, async () => {
 			const account01 = await manager.getAccount(0);
 			const account02 = await manager.getAccount(1);
 			const tx = await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});

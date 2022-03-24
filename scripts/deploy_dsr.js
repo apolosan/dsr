@@ -2,7 +2,7 @@
 // npx hardhat node --show-stack-traces --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/fantom_testnet.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon_testnet.json")));
 
 async function main() {
 
@@ -53,7 +53,7 @@ async function main() {
       devComission.address,
       networkData.Contracts.ExchangeRouter,
       networkData.Contracts.ReferenceSystemDeFi,
-      networkData.Contracts.SystemDeFiReference, {gasLimit: 6000000});
+      networkData.Contracts.SystemDeFiReference, {gasLimit: 12000000});
 
 		await sdr.connect(ethers.provider.getSigner(deployer.address)).setFarmContractAddress(dsr.address);
 		await sdr.connect(ethers.provider.getSigner(deployer.address)).setMarketingAddress(dsr.address);

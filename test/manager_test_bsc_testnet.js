@@ -1,23 +1,26 @@
+// https://trufflesuite.com/blog/introducing-ganache-7/index.html#5-mine-blocks-instantly-at-interval-or-on-demand
+// npx ganache --fork https://data-seed-prebsc-1-s1.binance.org --miner.blockTime 0 --fork.requestsPerSecond 0 --wallet.mnemonic "pudding party palace jazz august scissors fog knock enjoy direct matrix spot"
+// npx hardhat node --show-stack-traces --fork https://data-seed-prebsc-1-s1.binance.org
 const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 
-const UNISWAP_ROUTER_ADDRESS = "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
-const COMPTROLLER_ADDRESS = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
+const UNISWAP_ROUTER_ADDRESS = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1"; // "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D" ETH -- "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" BSC_TESTNET;
+const COMPTROLLER_ADDRESS = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D"; // "0xfD36E2c2a6789Db23113685031d7F16329158384" - Comptroller Venus;
 const PRICE_FEED_ADDRESS = "0xd61c7Fa07dF7241812eA6D21744a61f1257D1818";
-const ASSETS = ["0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd", "0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47"]; // ETH & USDC
-const INVERTED_ASSETS = ["0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47", "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd"];
-const C_ASSETS = ["0x2E7222e51c0f6e98610A1543Aa3836E092CDe62c", "0x08e0A5575De71037aE36AbfAfb516595fE68e5e4"];
+const ASSETS = ["0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd", "0x16227D60f7a0e586C66B005219dfc887D13C9531"]; // ETH & USDC
+const INVERTED_ASSETS = ["0x16227D60f7a0e586C66B005219dfc887D13C9531", "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd"];
+const C_ASSETS = ["0x2E7222e51c0f6e98610A1543Aa3836E092CDe62c", "0xD5C4C2e2facBEB59D0216D0595d63FcDc6F9A1a7"];
 const CONSOLE_LOG = true;
-const ETH = "0.05";
+const ETH = "1";
 
-describe("Manager", async () => {
-		let signers, manager;
+describe("ManagerMOCK", async () => {
+		let signers, manager, ManagerMOCK;
 		const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
-				Manager = await ethers.getContractFactory("Manager");
-				manager = await Manager.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, "");
+				ManagerMOCK = await ethers.getContractFactory("ManagerMOCK");
+				manager = await ManagerMOCK.deploy(UNISWAP_ROUTER_ADDRESS, COMPTROLLER_ADDRESS, PRICE_FEED_ADDRESS, ASSETS, C_ASSETS, ASSETS[0]);
 		});
 
 		it("should deploy manager contract correctly", async () => {
@@ -25,7 +28,7 @@ describe("Manager", async () => {
 		});
 
 		it("should set price feed address correctly", async () => {
-			const priceFeedAddress = await manager._priceFeedAddress();
+			const priceFeedAddress = await manager.getPriceFeedAddress();
 			if (CONSOLE_LOG) {
 				console.log(`Price Feed Address: ${priceFeedAddress}`)
 			}
@@ -46,7 +49,7 @@ describe("Manager", async () => {
 		});
 
 		it(`should show the assets pair address obtained from exchange router`, async () => {
-			const pairAddress = await manager._pair();
+			const pairAddress = await manager.getPairAddress();
 			if (CONSOLE_LOG)
 				console.log(`ETH|USD Pair Address: ${pairAddress}`);
 			assert(pairAddress != '' || pairAddress != ZERO_ADDRESS);
@@ -60,18 +63,18 @@ describe("Manager", async () => {
 		});
 
 		it(`should update the DSR token address correctly`, async () => {
-			const oldDsrAddress = await manager._dsrTokenAddress();
+			const oldDsrAddress = await manager.getDsrTokenAddress();
 			const dsrAddress = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
-			await manager.setDsrTokenAddresss(dsrAddress);
-			const newDsrAddress = await manager._dsrTokenAddress();
+			await manager.setDsrTokenAddress(dsrAddress);
+			const newDsrAddress = await manager.getDsrTokenAddress();
 			if (CONSOLE_LOG)
 				console.log(`DSR Token Address: ${newDsrAddress}`);
 			assert(oldDsrAddress != newDsrAddress);
 		});
 
 		it(`must create two accounts for investment`, async () => {
-			const account0 = await manager.testGetAccount(0);
-			const account1 = await manager.testGetAccount(1);
+			const account0 = await manager.getAccount(0);
+			const account1 = await manager.getAccount(1);
 			if (CONSOLE_LOG) {
 				console.log(account0);
 				console.log(account1);
@@ -80,15 +83,15 @@ describe("Manager", async () => {
 		});
 
 		it(`should pass the comptroller address to created accounts`, async() => {
-			const comptrollerAddress = await manager.testGetComptrollerAddress();
+			const comptrollerAddress = await manager.getComptrollerAddress();
 			if (CONSOLE_LOG)
 				console.log(`Comptroller Address: ${comptrollerAddress}`);
 			assert(comptrollerAddress == COMPTROLLER_ADDRESS);
 		});
 
 		it(`should invest resources automatically, right after it receives some ETH amount`, async () => {
-			const account01 = await manager.testGetAccount(0);
-			const account02 = await manager.testGetAccount(1);
+			const account01 = await manager.getAccount(0);
+			const account02 = await manager.getAccount(1);
 			const tx = await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const IERC20 = await artifacts.readArtifact("IERC20");
 			const InvestmentAccount = await artifacts.readArtifact("InvestmentAccount");
@@ -98,17 +101,13 @@ describe("Manager", async () => {
 			const A02 = new ethers.Contract(account02, InvestmentAccount.abi, ethers.provider);
 			const balance_cETH = await cEth.balanceOf(account01);
 			const balance_cUSD = await cUsd.balanceOf(account02);
-			const borrowedBalanceAccount01 = await A01.balanceETH();
-			const borrowedBalanceAccount02 = await A02.balanceUSD();
 			if (CONSOLE_LOG) {
 				const exposure = await manager.getExposureOfAccounts();
 				console.log(exposure);
 				console.log(`Balance of Account #1 - ${account01}: ${balance_cETH}`);
 				console.log(`Balance of Account #2 - ${account02}: ${balance_cUSD}`);
-				console.log(`Borrow Balance of Account #1 - ${account01}: ${borrowedBalanceAccount01}`);
-				console.log(`Borrow Balance of Account #2 - ${account02}: ${borrowedBalanceAccount02}`);
 			}
-			assert(balance_cETH != 0 && balance_cUSD != 0 && borrowedBalanceAccount01 != 0 && borrowedBalanceAccount02 != 0);
+			assert(balance_cETH != 0 && balance_cUSD != 0);
 		});
 
 		it(`should adjust the exposure according to the price movement`, async () => {
@@ -118,6 +117,7 @@ describe("Manager", async () => {
 			const exchangeRouter_ = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, IUniswapV2Router02.abi, ethers.provider);
 			const exchangeRouter = exchangeRouter_.connect(ethers.provider.getSigner(signers[0].address));
 			await exchangeRouter.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
+			await manager.adjustExposureOfAccounts(5);
 			const currentExposure = await manager.getExposureOfAccounts();
 			if (CONSOLE_LOG) {
 				console.log(previousExposure);
@@ -126,15 +126,15 @@ describe("Manager", async () => {
 			assert(previousExposure[0] < currentExposure[0] && previousExposure[1] > currentExposure[1]);
 		});
 
-		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (1%)`, async () => {
+		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (4%)`, async () => {
 			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const previousExposure = await manager.getExposureOfAccounts();
 			const IUniswapV2Router02_ = await artifacts.readArtifact("IUniswapV2Router02");
 			const router_ = new ethers.Contract(UNISWAP_ROUTER_ADDRESS, IUniswapV2Router02_.abi, ethers.provider);
 			const router = router_.connect(ethers.provider.getSigner(signers[0].address));
 			await router.swapExactETHForTokensSupportingFeeOnTransferTokens(0, ASSETS, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
+			await manager.adjustExposureOfAccounts(5);
 			const currentExposure = await manager.getExposureOfAccounts();
-			await manager.testSetExposureDifference(1);
 			const previousBalance = await ethers.provider.getBalance(signers[0].address);
 			await manager.checkForProfit();
 			const currentBalance = await ethers.provider.getBalance(signers[0].address);

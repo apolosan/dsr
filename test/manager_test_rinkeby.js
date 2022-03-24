@@ -61,7 +61,7 @@ describe("Manager", async () => {
 		it(`should update the DSR token address correctly`, async () => {
 			const oldDsrAddress = await manager._dsrTokenAddress();
 			const dsrAddress = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1";
-			await manager.setDsrTokenAddresss(dsrAddress);
+			await manager.setDsrTokenAddress(dsrAddress);
 			const newDsrAddress = await manager._dsrTokenAddress();
 			if (CONSOLE_LOG)
 				console.log(`DSR Token Address: ${newDsrAddress}`);

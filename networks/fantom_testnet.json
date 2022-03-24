@@ -4,7 +4,7 @@
     "Comptroller": "",
     "PriceFeed": "",
     "ReferenceSystemDeFi": "0x4C8D69cCF52144952e0dF2230275C7059C536805",
-    "SystemDeFiReference": "0xe94a1653e8956408959f65B68B836E4a506f699b",
+    "SystemDeFiReference": "0xe146d3A3E56A13630d3382a3f8cE408F652b8234",
     "Managers": [""],
     "Assets": ["0xf1277d1Ed8AD466beddF92ef448A132661956621", "0x4C8D69cCF52144952e0dF2230275C7059C536805"],
     "CAssets": ["", ""],

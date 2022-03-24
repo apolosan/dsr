@@ -98,11 +98,11 @@ contract DeFiSystemReference is IERC20, Ownable {
 		address public dsrHelperAddress;
 		address public developerComissionAddress;
 
-		address private dsrEthPair;
-		address private dsrRsdPair;
-		address private dsrSdrPair;
-		address private rsdEthPair;
-		address private sdrRsdPair;
+		address public dsrEthPair;
+		address public dsrRsdPair;
+		address public dsrSdrPair;
+		address public rsdEthPair;
+		address public sdrRsdPair;
 
     uint8 private _decimals = 18;
     uint256 private _totalSupply;
@@ -115,12 +115,12 @@ contract DeFiSystemReference is IERC20, Ownable {
 		uint256 private constant _FACTOR = 10**18;
 		uint256 private constant _MAGNITUDE = 2**128;
 
-		uint256 public lastTotalProfit;
-		uint256 public liquidityProfitShare = (60 * _FACTOR) / 100; // 60.00%
-		uint256 public liquidityInvestmentShare = (50 * _FACTOR) / 100; // 50.00%
-		uint256 public developerComissionRate = _FACTOR / 100; // 1.00%
-		uint256 public checkerComissionRate = (2 * _FACTOR) / 1000; // 0.20%
-		uint256 public dividendRate;
+		uint256 private lastTotalProfit;
+		uint256 private constant liquidityProfitShare = (60 * _FACTOR) / 100; // 60.00%
+		uint256 private constant liquidityInvestmentShare = (50 * _FACTOR) / 100; // 50.00%
+		uint256 private developerComissionRate = _FACTOR / 100; // 1.00%
+		uint256 private checkerComissionRate = (2 * _FACTOR) / 1000; // 0.20%
+		uint256 private dividendRate;
 		uint256 public totalProfit;
 
 		mapping (address => uint256) private _balances;
@@ -243,6 +243,8 @@ contract DeFiSystemReference is IERC20, Ownable {
 				}
 			} else {
 				_balances[sender] = senderBalance.sub(amount);
+        // Calculate new profit spent in order to allow the sender to continue participating in the next profit cycles, regularly
+        _currentProfitSpent[sender] = potentialProfitPerAccount(sender);
 			}
 
 			// To avoid the recipient be able to spend an unavailable or inexistent profit we consider he already spent the current claimable profit
@@ -306,8 +308,8 @@ contract DeFiSystemReference is IERC20, Ownable {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {
+      checkForProfit();
 			tryPoBet(uint256(sha256(abi.encodePacked(from, to, amount))));
-			checkForProfit();
     }
 
 		// RESOURCE ALLOCATION STRATEGY - FOR EARNED PROFIT
@@ -559,10 +561,11 @@ contract DeFiSystemReference is IERC20, Ownable {
 				|| account == dsrHelperAddress
 				|| account == dsrEthPair
 				|| account == dsrRsdPair
-				|| account == dsrSdrPair)
+				|| account == dsrSdrPair) {
 				return 0;
-			else
+			} else {
 				return (_balances[account].mul(dividendRate).div(_MAGNITUDE));
+      }
 		}
 
 		function receiveProfit(bool mustChargeComission) external virtual payable lockMint {

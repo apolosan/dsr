@@ -1,14 +1,15 @@
-// npx ganache --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL --miner.blockTime 0 --fork.requestsPerSecond 0 --wallet.mnemonic "pudding party palace jazz august scissors fog knock enjoy direct matrix spot"
-// npx hardhat node --show-stack-traces --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL
+// npx ganache --fork https://bsc-dataseed3.binance.org --miner.blockTime 0 --fork.requestsPerSecond 0 --wallet.mnemonic "pudding party palace jazz august scissors fog knock enjoy direct matrix spot"
+// npx hardhat node --show-stack-traces --fork https://bsc-dataseed3.binance.org
 const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/bsc.json")));
 
 const CONSOLE_LOG = true;
 const ALREADY_DEPLOYED_RSD = false;
-const ETH = "100.0";
+const ALREADY_DEPLOYED_MANAGER = false;
+const ETH = "10.0";
 
 describe("DeFiSystemReference", async () => {
   let dsr, dsrHelper, signers, devComission, RSD, rsd, RSD_ADDRESS;
@@ -36,7 +37,8 @@ describe("DeFiSystemReference", async () => {
       devComission.address,
       networkData.Contracts.ExchangeRouter,
       RSD_ADDRESS,
-      networkData.Contracts.SystemDeFiReference);
+      networkData.Contracts.SystemDeFiReference,
+      {gasLimit: 12000000});
 
     if (CONSOLE_LOG) {
       console.log(`RSD Address: ${RSD_ADDRESS}`);
@@ -55,18 +57,15 @@ describe("DeFiSystemReference", async () => {
   });
 
   it('should set DSR address for the first deployed manager', async () => {
-    const Manager = await ethers.getContractFactory("Manager");
+    const Manager = await ethers.getContractFactory("BasicManager");
     const manager = await Manager.deploy(
       networkData.Contracts.ExchangeRouter,
-      networkData.Contracts.Comptroller,
-      networkData.Contracts.PriceFeed,
       networkData.Contracts.Assets,
-      networkData.Contracts.CAssets,
       networkData.Contracts.Assets[0]);
     await manager.setDsrTokenAddress(dsr.address);
     const dsr_address = await manager.getDsrTokenAddress();
     if (CONSOLE_LOG) {
-      console.log(dsr_address);
+      console.log(`DSR Address Set into the Manager: ${dsr_address}`);
     }
     assert(dsr_address != networkData.ZeroAddress && dsr_address != undefined);
   });
@@ -97,15 +96,16 @@ describe("DeFiSystemReference", async () => {
   });
 
   it(`should invest resources automatically, right after it receives some ETH amount, and mint DSR tokens`, async () => {
-    const Manager = await ethers.getContractFactory("Manager");
-    const manager = await Manager.deploy(networkData.Contracts.ExchangeRouter, networkData.Contracts.Comptroller, networkData.Contracts.PriceFeed, networkData.Contracts.Assets, networkData.Contracts.CAssets, networkData.Contracts.Assets[0]);
+    const Manager = await ethers.getContractFactory("BasicManager");
+    const manager = await Manager.deploy(
+      networkData.Contracts.ExchangeRouter,
+      networkData.Contracts.Assets,
+      networkData.Contracts.Assets[0]);
     await manager.setDsrTokenAddress(dsr.address);
     await dsr.addManager(manager.address);
     const isManagerAdded = await dsr.isManagerAdded(manager.address);
-    const account01 = await manager.getAccount(0);
-    const account02 = await manager.getAccount(1);
     const firstTotalSupply = await dsr.totalSupply();
-    const tx = await signers[0].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    const tx = await signers[0].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const secondTotalSupply = await dsr.totalSupply();
     const balanceOfDSR = await dsr.balanceOf(signers[0].address);
     const exposure = await manager.getExposureOfAccounts();
@@ -119,7 +119,7 @@ describe("DeFiSystemReference", async () => {
   }).timeout(100000);
 
   it(`should allow to mint DSR tokens and transfer to another wallet correctly`, async () => {
-    const tx = await signers[1].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    const tx = await signers[1].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const previousBalanceOfDSR = await dsr.balanceOf(signers[1].address);
     await dsr.connect(ethers.provider.getSigner(signers[1].address)).transfer(signers[2].address, previousBalanceOfDSR);
     const currentBalanceOfDSR = await dsr.balanceOf(signers[1].address);
@@ -136,7 +136,7 @@ describe("DeFiSystemReference", async () => {
     const wEth = new ethers.Contract(networkData.Contracts.Assets[0], IERC20.abi, ethers.provider);
     const previousBalanceDSR = await dsr.balanceOf(dsrEthPair);
     const previousBalanceETH = await wEth.balanceOf(dsrEthPair);
-    const tx = await signers[3].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    const tx = await signers[3].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const currentBalanceDSR = await dsr.balanceOf(dsrEthPair);
     const currentBalanceETH = await wEth.balanceOf(dsrEthPair);
     if (CONSOLE_LOG) {
@@ -151,7 +151,7 @@ describe("DeFiSystemReference", async () => {
   it(`should charge and withdraw comission for developer team correctly`, async () => {
     const previousBalance = await ethers.provider.getBalance(signers[0].address);
     const previousBalanceDev = await ethers.provider.getBalance(devComission.address);
-    const tx = await signers[3].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    const tx = await signers[3].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const currentBalanceDev = await ethers.provider.getBalance(devComission.address);
     await devComission.connect(ethers.provider.getSigner(signers[0].address)).withdrawEthSent(signers[0].address);
     const currentBalance = await ethers.provider.getBalance(signers[0].address);
@@ -167,7 +167,7 @@ describe("DeFiSystemReference", async () => {
   });
 
   it(`should not allow to another person than owner to withdrawn comission`, async () => {
-    const tx = await signers[3].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    const tx = await signers[3].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     let result = false;
     try {
       await devComission.connect(ethers.provider.getSigner(signers[1].address)).withdrawEthSent(signers[0].address);
@@ -188,11 +188,6 @@ describe("DeFiSystemReference", async () => {
       dsr.address,
       [dsr.address]);
 
-    // if (!ALREADY_DEPLOYED_RSD) {
-    //   await rsd.connect(ethers.provider.getSigner(signers[0].address)).transfer(sdr.address, ethers.utils.parseEther('500000'));
-    //   await sdr.provideInitialLiquidity();
-    // }
-
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).initializeTokenContract(
       dsrHelper.address,
       devComission.address,
@@ -201,7 +196,7 @@ describe("DeFiSystemReference", async () => {
       sdr.address);
     const balanceSDR = await sdr.balanceOf(dsr.address);
     const balanceRewardBefore = await sdr.balanceOf(signers[1].address);
-    const tx = await signers[1].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    const tx = await signers[1].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const balanceDSR = await dsr.balanceOf(signers[1].address);
     const balanceRewardAfter = await sdr.balanceOf(signers[1].address);
     if (CONSOLE_LOG) {
@@ -214,26 +209,24 @@ describe("DeFiSystemReference", async () => {
   });
 
   it(`should mint more tokens when receiveing profit from manager(s) and sharing them among all investors as dividends`, async () => {
-    const ManagerMOCK = await ethers.getContractFactory("ManagerMOCK");
-    const managerMock = await ManagerMOCK.deploy(
+    const Manager = await ethers.getContractFactory("BasicManagerMOCK");
+    const managerMock = await Manager.deploy(
       networkData.Contracts.ExchangeRouter,
-      networkData.Contracts.Comptroller,
-      networkData.Contracts.PriceFeed,
       networkData.Contracts.Assets,
-      networkData.Contracts.CAssets,
       networkData.Contracts.Assets[0]);
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).addManager(managerMock.address);
     await managerMock.connect(ethers.provider.getSigner(signers[0].address)).setDsrTokenAddress(dsr.address);
 
-    await signers[2].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    await signers[2].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const b01 = await dsr.balanceOf(signers[2].address);
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).transfer(signers[3].address, b01, {gasLimit: 30000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).transfer(signers[3].address, b01, {gasLimit: 12000000});
     const balanceBeforeDividend = await dsr.balanceOf(signers[3].address);
 
-    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
-
+    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const totalSupplyBefore = await dsr.totalSupply();
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 30000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 12000000});
+    await managerMock.setPercentage(10);
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 12000000});
     const totalSupplyAfter = await dsr.totalSupply();
 
     const balanceAfterDividend = await dsr.balanceOf(signers[3].address);
@@ -247,36 +240,36 @@ describe("DeFiSystemReference", async () => {
     }
 
     assert(totalSupplyAfter > totalSupplyBefore && balanceAfterDividend > balanceBeforeDividend);
-  });
+  }).timeout(100000);
 
   it(`should allow an account to spend its received dividend correctly`, async () => {
-    const ManagerMOCK = await ethers.getContractFactory("ManagerMOCK");
-    const managerMock = await ManagerMOCK.deploy(
+    const Manager = await ethers.getContractFactory("BasicManagerMOCK");
+    const managerMock = await Manager.deploy(
       networkData.Contracts.ExchangeRouter,
-      networkData.Contracts.Comptroller,
-      networkData.Contracts.PriceFeed,
       networkData.Contracts.Assets,
-      networkData.Contracts.CAssets,
       networkData.Contracts.Assets[0]);
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).addManager(managerMock.address);
     await managerMock.connect(ethers.provider.getSigner(signers[0].address)).setDsrTokenAddress(dsr.address);
 
+    await signers[2].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const b01 = await dsr.balanceOf(signers[2].address);
-    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 30000000});
+    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 12000000});
+    await managerMock.setPercentage(10);
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 12000000});
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).removeManager(managerMock.address);
     const b02 = await dsr.balanceOf(signers[2].address);
 
     const balanceDifference = b02.sub(b01);
 
     const balanceToBefore = await dsr.balanceOf(signers[4].address);
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).transfer(signers[4].address, balanceDifference, {gasLimit: 30000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).transfer(signers[4].address, balanceDifference, {gasLimit: 12000000});
     const balanceToAfter = await dsr.balanceOf(signers[4].address);
 
     const b03 = await dsr.balanceOf(signers[2].address);
 
     const balanceTo2Before = await dsr.balanceOf(signers[5].address);
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).transfer(signers[5].address, b03, {gasLimit: 30000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).transfer(signers[5].address, b03, {gasLimit: 12000000});
     const balanceTo2After = await dsr.balanceOf(signers[5].address);
 
     const b04 = await dsr.balanceOf(signers[2].address);
@@ -292,7 +285,7 @@ describe("DeFiSystemReference", async () => {
       console.log(`Balance TO2 Before TRANSFER          : ${balanceTo2Before}`);
       console.log(`Balance TO2 After TRANSFER           : ${balanceTo2After}`);
     }
-  });
+  }).timeout(100000);
 
   it(`should receive profit and provide automatic liquidity for DSR/ETH + DSR/RSD + DSR/SDR pairs`, async () => {
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).initializeTokenContract(
@@ -306,17 +299,16 @@ describe("DeFiSystemReference", async () => {
     const wEth = new ethers.Contract(networkData.Contracts.Assets[0], IERC20.abi, ethers.provider);
     const sdr = new ethers.Contract(networkData.Contracts.SystemDeFiReference, IERC20.abi, ethers.provider);
 
-    const ManagerMOCK = await ethers.getContractFactory("ManagerMOCK");
-    const managerMock = await ManagerMOCK.deploy(
+    const Manager = await ethers.getContractFactory("BasicManagerMOCK");
+    const managerMock = await Manager.deploy(
       networkData.Contracts.ExchangeRouter,
-      networkData.Contracts.Comptroller,
-      networkData.Contracts.PriceFeed,
       networkData.Contracts.Assets,
-      networkData.Contracts.CAssets,
       networkData.Contracts.Assets[0]);
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).addManager(managerMock.address);
     await managerMock.connect(ethers.provider.getSigner(signers[0].address)).setDsrTokenAddress(dsr.address);
-    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
+    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
+    await managerMock.checkForProfit();
+    await managerMock.setPercentage(10);
 
     const dsrEthPair = await dsr.dsrEthPair();
     const dsrRsdPair = await dsr.dsrRsdPair();
@@ -326,14 +318,12 @@ describe("DeFiSystemReference", async () => {
     const balanceDsrEthPair = [await dsr.balanceOf(dsrEthPair), await wEth.balanceOf(dsrEthPair)];
     const balanceDsrRsdPair = [await dsr.balanceOf(dsrRsdPair), await rsd.balanceOf(dsrRsdPair)];
     const balanceDsrSdrPair = [await dsr.balanceOf(dsrSdrPair), await sdr.balanceOf(dsrSdrPair)];
-    //const balanceSdrRsdPair = [await sdr.balanceOf(sdrRsdPair), await rsd.balanceOf(sdrRsdPair)];
 
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 30000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 12000000});
 
     const balanceDsrEthPairAfter = [await dsr.balanceOf(dsrEthPair), await wEth.balanceOf(dsrEthPair)];
     const balanceDsrRsdPairAfter = [await dsr.balanceOf(dsrRsdPair), await rsd.balanceOf(dsrRsdPair)];
     const balanceDsrSdrPairAfter = [await dsr.balanceOf(dsrSdrPair), await sdr.balanceOf(dsrSdrPair)];
-    //const balanceSdrRsdPairAfter = [await sdr.balanceOf(sdrRsdPair), await rsd.balanceOf(sdrRsdPair)];
 
     if (CONSOLE_LOG) {
       console.log(`DSR/ETH LP      : ${balanceDsrEthPair}`);
@@ -345,26 +335,26 @@ describe("DeFiSystemReference", async () => {
     }
 
     assert(balanceDsrEthPair[0] < balanceDsrEthPairAfter[0] && balanceDsrRsdPair[0] < balanceDsrRsdPairAfter[0]);
-  });
+  }).timeout(100000);
 
   it(`should burn tokens correctly even after profit received`, async () => {
-    const ManagerMOCK = await ethers.getContractFactory("ManagerMOCK");
-    const managerMock = await ManagerMOCK.deploy(
+    const Manager = await ethers.getContractFactory("BasicManagerMOCK");
+    const managerMock = await Manager.deploy(
       networkData.Contracts.ExchangeRouter,
-      networkData.Contracts.Comptroller,
-      networkData.Contracts.PriceFeed,
       networkData.Contracts.Assets,
-      networkData.Contracts.CAssets,
       networkData.Contracts.Assets[0]);
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).addManager(managerMock.address);
     await managerMock.connect(ethers.provider.getSigner(signers[0].address)).setDsrTokenAddress(dsr.address);
 
+    await signers[2].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const b01 = await dsr.balanceOf(signers[2].address);
-    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 30000000});
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 30000000});
+    await signers[1].sendTransaction({to: managerMock.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 12000000});
+    await managerMock.setPercentage(10);
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).checkForProfit({gasLimit: 12000000});
     await dsr.connect(ethers.provider.getSigner(signers[0].address)).removeManager(managerMock.address);
     const b02 = await dsr.balanceOf(signers[2].address);
-    await dsr.connect(ethers.provider.getSigner(signers[2].address)).burn(b02);
+    await dsr.connect(ethers.provider.getSigner(signers[2].address)).burn(b02, {gasLimit: 12000000});
     const b03 = await dsr.balanceOf(signers[2].address);
 
     if (CONSOLE_LOG) {
@@ -374,5 +364,5 @@ describe("DeFiSystemReference", async () => {
     }
 
     assert(b01 > 0 && b02 > b01 && b03 == 0);
-  });
+  }).timeout(100000);
 });
