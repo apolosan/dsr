@@ -5,6 +5,7 @@ interface IManager {
 	function checkForProfit() external;
 	function getExposureOfAccounts() external view returns(uint256, uint256);
 	function queryPrice() external view returns(uint256);
+	function receiveFromAccount() external payable;
 	function receiveResources() external payable;
 	function setDsrTokenAddress(address) external;
 	function withdrawInvestment() external;

@@ -7,7 +7,7 @@ const path = require("path");
 const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
 
 const CONSOLE_LOG = true;
-const ALREADY_DEPLOYED_RSD = false;
+const ALREADY_DEPLOYED_RSD = true;
 const ETH = "100.0";
 
 describe("DeFiSystemReference", async () => {
@@ -98,9 +98,22 @@ describe("DeFiSystemReference", async () => {
 
   it(`should invest resources automatically, right after it receives some ETH amount, and mint DSR tokens`, async () => {
     const Manager = await ethers.getContractFactory("Manager");
-    const manager = await Manager.deploy(networkData.Contracts.ExchangeRouter, networkData.Contracts.Comptroller, networkData.Contracts.PriceFeed, networkData.Contracts.Assets, networkData.Contracts.CAssets, networkData.Contracts.Assets[0]);
+    const manager = await Manager.deploy(
+      networkData.Contracts.ExchangeRouter,
+      networkData.Contracts.Comptroller,
+      networkData.Contracts.PriceFeed,
+      networkData.Contracts.Assets,
+      networkData.Contracts.CAssets,
+      networkData.Contracts.Assets[0]);
+    const BasicManager = await ethers.getContractFactory("BasicManager");
+    const basicManager = await BasicManager.deploy(
+      networkData.Contracts.ExchangeRouter,
+      [networkData.Contracts.Assets[2], networkData.Contracts.Assets[3]],
+      networkData.Contracts.Assets[0]);
     await manager.setDsrTokenAddress(dsr.address);
+    await basicManager.setDsrTokenAddress(dsr.address);
     await dsr.addManager(manager.address);
+    await dsr.addManager(basicManager.address);
     const isManagerAdded = await dsr.isManagerAdded(manager.address);
     const account01 = await manager.getAccount(0);
     const account02 = await manager.getAccount(1);

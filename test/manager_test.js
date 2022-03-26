@@ -2,7 +2,7 @@ const { expect, assert } = require('chai');
 const BigNumber = require("bignumber.js");
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/bsc.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
 
 const CONSOLE_LOG = true;
 const ETH = "10";
@@ -13,7 +13,7 @@ describe("Manager", async () => {
 
 		beforeEach(async () => {
 				signers = await ethers.getSigners();
-				Manager = await ethers.getContractFactory("ManagerBsc");
+				Manager = await ethers.getContractFactory("ManagerMOCK");
 				manager = await Manager.deploy(
 					networkData.Contracts.ExchangeRouter,
 					networkData.Contracts.Comptroller,
@@ -129,7 +129,7 @@ describe("Manager", async () => {
 			assert(previousExposure[0] < currentExposure[0] && previousExposure[1] > currentExposure[1]);
 		});
 
-		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (1%)`, async () => {
+		it(`should rebalance positions and charge comission if the exposure difference gets greater than the maximum allowed (4%)`, async () => {
 			await signers[0].sendTransaction({to: manager.address, value: ethers.utils.parseEther(ETH)});
 			const previousExposure = await manager.getExposureOfAccounts();
 			const IUniswapV2Router02_ = await artifacts.readArtifact("IUniswapV2Router02");
@@ -137,7 +137,7 @@ describe("Manager", async () => {
 			const router = router_.connect(ethers.provider.getSigner(signers[0].address));
 			await router.swapExactETHForTokensSupportingFeeOnTransferTokens(0, networkData.Contracts.Assets, signers[0].address, 200000000000000, {value: ethers.utils.parseEther(ETH)});
 			const currentExposure = await manager.getExposureOfAccounts();
-			await manager.testSetExposureDifference(1);
+			await manager.adjustExposureOfAccounts(4);
 			const previousBalance = await ethers.provider.getBalance(signers[0].address);
 			await manager.checkForProfit();
 			const currentBalance = await ethers.provider.getBalance(signers[0].address);

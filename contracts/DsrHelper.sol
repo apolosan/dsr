@@ -13,7 +13,9 @@ contract DsrHelper is Context, Ownable {
 	address internal dsrTokenAddress;
 	address internal rsdTokenAddress;
 	address internal sdrTokenAddress;
-	address internal exchangeRouterAddress;
+	address public exchangeRouterAddress;
+
+	uint256 private constant FACTOR = 10**36;
 
 	modifier fromDsrToken {
 		require(_msgSender() == dsrTokenAddress || _msgSender() == owner(), "DSR Helper: only DSR token contract can call this function");
@@ -45,7 +47,7 @@ contract DsrHelper is Context, Ownable {
 				0, // slippage is unavoidable
 				0, // slippage is unavoidable
 				address(0),
-				block.timestamp
+				block.timestamp+300
 		) { return true; } catch { return false; }
 	}
 
@@ -66,7 +68,7 @@ contract DsrHelper is Context, Ownable {
 			0, // slippage is unavoidable
 			0, // slippage is unavoidable
 			address(0),
-			block.timestamp
+			block.timestamp+300
 		) { return true; } catch { return false; }
 	}
 
@@ -87,24 +89,19 @@ contract DsrHelper is Context, Ownable {
 			0, // slippage is unavoidable
 			0, // slippage is unavoidable
 			address(0),
-			block.timestamp
+			block.timestamp+300
 		) { return true; } catch { return false; }
 	}
 
-	function getPoolRate(address pair, address asset01, address asset02) public view returns(uint256, bool) {
+	function getPoolRate(address pair, address asset01, address asset02) public view returns(uint256) {
+		uint256 balance01 = IERC20(asset01).balanceOf(pair);
+		uint256 balance02 = IERC20(asset02).balanceOf(pair);
 		if (pair == address(0)) {
-			return (1, true);
+			return FACTOR;
 		} else {
-			uint256 balance01 = IERC20(asset01).balanceOf(pair);
-			uint256 balance02 = IERC20(asset02).balanceOf(pair);
-			if (balance01 == 0)
-				balance01 = 1;
-			if (balance02 == 0)
-				balance02 = 1;
-			if (balance01 >= balance02)
-				return (balance01 / balance02, true);
-			else
-				return (balance02 / balance01, false);
+			balance01 = balance01 == 0 ? 1 : balance01;
+			balance02 = balance02 == 0 ? 1 : balance02;
+			return ((balance01 * FACTOR) / balance02);
 		}
 	}
 
@@ -119,7 +116,7 @@ contract DsrHelper is Context, Ownable {
 			0, // accept any amount of RSD
 			path,
 			address(this),
-			block.timestamp
+			block.timestamp+300
 		) { return true; } catch { return false; }
 	}
 
@@ -138,7 +135,7 @@ contract DsrHelper is Context, Ownable {
 			0, // accept any amount of DSR
 			path,
 			address(this),
-			block.timestamp
+			block.timestamp+300
 		) { return true; } catch { return false; }
 	}
 
@@ -157,7 +154,7 @@ contract DsrHelper is Context, Ownable {
 			0, // accept any amount of SDR
 			path,
 			address(this),
-			block.timestamp
+			block.timestamp+300
 		) { return true; } catch { return false; }
 	}
 

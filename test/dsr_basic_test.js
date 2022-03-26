@@ -7,7 +7,7 @@ const path = require("path");
 const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/bsc.json")));
 
 const CONSOLE_LOG = true;
-const ALREADY_DEPLOYED_RSD = false;
+const ALREADY_DEPLOYED_RSD = true;
 const ALREADY_DEPLOYED_MANAGER = false;
 const ETH = "10.0";
 
@@ -101,9 +101,18 @@ describe("DeFiSystemReference", async () => {
       networkData.Contracts.ExchangeRouter,
       networkData.Contracts.Assets,
       networkData.Contracts.Assets[0]);
+
+    // const manager2 = await Manager.deploy(
+    //   networkData.Contracts.ExchangeRouter,
+    //   networkData.Contracts.Assets,
+    //   networkData.Contracts.Assets[0]);
+
     await manager.setDsrTokenAddress(dsr.address);
+    // await manager2.setDsrTokenAddress(dsr.address);
     await dsr.addManager(manager.address);
+    // await dsr.addManager(manager2.address);
     const isManagerAdded = await dsr.isManagerAdded(manager.address);
+    // const isManager2Added = await dsr.isManagerAdded(manager2.address);
     const firstTotalSupply = await dsr.totalSupply();
     const tx = await signers[0].sendTransaction({to: dsr.address, value: ethers.utils.parseEther(ETH), gasLimit: 12000000});
     const secondTotalSupply = await dsr.totalSupply();
@@ -111,7 +120,8 @@ describe("DeFiSystemReference", async () => {
     const exposure = await manager.getExposureOfAccounts();
     if (CONSOLE_LOG) {
       console.log(`Total Supply: ${firstTotalSupply} | ${secondTotalSupply}`);
-      console.log(`Is manager added? ${isManagerAdded}`);
+      console.log(`Is manager #1 added? ${isManagerAdded}`);
+      // console.log(`Is manager #2 added? ${isManager2Added}`);
       console.log(`Balance of DSR: ${balanceOfDSR}`);
       console.log(exposure);
     }
@@ -365,4 +375,22 @@ describe("DeFiSystemReference", async () => {
 
     assert(b01 > 0 && b02 > b01 && b03 == 0);
   }).timeout(100000);
+
+  it(`should calculate the correct metrics for DSR tokenomics`, async () => {
+    const avgNumberBlocksForProfit = await dsr.getAverageNumberOfBlocksForProfit();
+    const avgProfitPerBlock = await dsr.getAverageProfitPerBlock();
+    const dividendYield = await dsr.getDividendYield();
+    const dividendYieldPerBlock = await dsr.getDividendYieldPerBlock();
+    if (CONSOLE_LOG) {
+      console.log(`Avg. Number of Block for Profit: ${avgNumberBlocksForProfit}`);
+      console.log(`Avg. Profit per Block          : ${avgProfitPerBlock}`);
+      console.log(`Dividend Yield                 : ${dividendYield}`);
+      console.log(`Dividend Yield per Block       : ${dividendYieldPerBlock}`);
+    }
+    assert(avgNumberBlocksForProfit != 0
+      && avgProfitPerBlock != 0
+      && dividendYield != 0
+      && dividendYieldPerBlock != 0
+    );
+  });
 });
