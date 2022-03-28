@@ -117,10 +117,10 @@ contract DeFiSystemReference is IERC20, Ownable {
 
 		uint256 private lastTotalProfit;
 		uint256 private constant liquidityProfitShare = (60 * _FACTOR) / 100; // 60.00%
-		uint256 private constant liquidityInvestmentShare = (50 * _FACTOR) / 100; // 50.00%
 		uint256 private developerComissionRate = _FACTOR / 100; // 1.00%
 		uint256 private checkerComissionRate = (2 * _FACTOR) / 1000; // 0.20%
 		uint256 private dividendRate;
+    uint256 public countInvestment;
 		uint256 public totalProfit;
 
 		mapping (address => uint256) private _balances;
@@ -294,6 +294,7 @@ contract DeFiSystemReference is IERC20, Ownable {
 				}
 			} else {
 				_balances[account] = burnBalance.sub(amount);
+        _currentProfitSpent[account] = potentialProfitPerAccount(account);
 			}
 			_totalSupply = _totalSupply.sub(amount);
 			emit Burn(account, address(0), amount);
@@ -379,15 +380,13 @@ contract DeFiSystemReference is IERC20, Ownable {
 		function _allocateResources() private {
 			uint256 resources = address(this).balance;
 
-			// 1. Calculate the amounts
+			// 1. Calculate developer team comission and pay it
 			uint256 devComission = (resources.mul(developerComissionRate)).div(_FACTOR);
-			uint256 mainLiquidity = (resources.mul(liquidityInvestmentShare)).div(_FACTOR);
-
-			// 2. Pay commission of the developer team
 			resources = resources.sub(devComission);
 			_chargeComissionDev(devComission);
 
-			// 3. Allocate resources for the DSR/ETH LP
+			// 2. Allocate resources for the DSR/ETH LP
+      uint256 mainLiquidity = resources.div(2);
 			resources = resources.sub(mainLiquidity);
 			uint256 rate;
 			DsrHelper dsrHelper = DsrHelper(payable(dsrHelperAddress));
@@ -404,7 +403,7 @@ contract DeFiSystemReference is IERC20, Ownable {
 				_transfer(address(this), dsrHelperAddress, amountToDsrEth);
 			dsrHelper.addLiquidityDsrEth{value: mainLiquidity}(); // DSR + ETH
 
-			// 4. Allocate resources for the Manager(s)
+			// 3. Allocate resources for the Manager(s)
 			uint256 length_ = managerAddresses.length;
 			if (length_ > 0) {
 				uint256 share = resources.div(length_);
@@ -452,14 +451,13 @@ contract DeFiSystemReference is IERC20, Ownable {
 			IERC20 sdr = IERC20(sdrTokenAddress);
 			uint256 balanceSdr = sdr.balanceOf(address(this));
 			if (balanceSdr > 0) {
-				uint256 amountToReward = balanceSdr.mul(amountInvested).div(_totalSupply);
+				uint256 amountToReward = ((balanceSdr.div(5)).mul(amountInvested)).div(_totalSupply.div(countInvestment));
 				try sdr.transfer(investor, amountToReward) { } catch { }
 			}
 		}
 
 		function addManager(address manager) public onlyOwner {
 			require(!isManagerAdded(manager), "DSR03");
-      IManager(manager).setDsrTokenAddress(address(this));
 			managerAddresses.push(manager);
 		}
 
@@ -545,7 +543,10 @@ contract DeFiSystemReference is IERC20, Ownable {
 					rate = DsrHelper(payable(dsrHelperAddress)).getPoolRate(dsrEthPair, address(this), address(_wEth));
 				}
 				uint256 amountInvested = ((msg.value).mul(rate)).div(_FACTOR);
+        amountInvested = amountInvested.sub((amountInvested.mul(developerComissionRate)).div(_FACTOR));
+        amountInvested = amountInvested.div(2);
 				_mint(investor, amountInvested);
+        countInvestment++;
 				_rewardSdrInfiniteFarm(investor, amountInvested);
 				_allocateResources();
 			}

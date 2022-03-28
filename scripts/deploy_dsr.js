@@ -2,7 +2,9 @@
 // npx hardhat node --show-stack-traces --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon_testnet.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/bitgert.json")));
+
+const GAS_LIMIT = 8000000;
 
 async function main() {
 
@@ -16,58 +18,49 @@ async function main() {
 		networkData.Contracts.Assets,
 		networkData.Contracts.Assets[0]);
 
-	// const manager2 = await Manager.deploy(
-	// 	networkData.Contracts.ExchangeRouter,
-	// 	[networkData.Contracts.Assets[2], networkData.Contracts.Assets[3]],
-	// 	networkData.Contracts.Assets[0]);
-
 	console.log(`BasicManager #1 address: ${manager.address}`);
-	// console.log(`BasicManager #2 address: ${manager2.address}`);
 
-  // if (manager.address != '' && manager.address != undefined && manager2.address != '' && manager2.address != undefined) {
-    const DeFiSystemReference = await ethers.getContractFactory("DeFiSystemReference");
-    const dsr = await DeFiSystemReference.deploy("DeFi System for Reference", "DSR", {gasLimit: 6000000});
+  const DeFiSystemReference = await ethers.getContractFactory("DeFiSystemReference");
+  const dsr = await DeFiSystemReference.deploy("DeFi System for Reference", "DSR", {gasLimit: GAS_LIMIT});
 
-		console.log(`DeFiSystemReference address: ${dsr.address}`);
+	console.log(`DeFiSystemReference address: ${dsr.address}`);
 
-		const SystemDeFiReference = await artifacts.readArtifact("SystemDeFiReference");
-		const sdr = new ethers.Contract(networkData.Contracts.SystemDeFiReference, SystemDeFiReference.abi, ethers.provider);
+	const SystemDeFiReference = await artifacts.readArtifact("SystemDeFiReference");
+	const sdr = new ethers.Contract(networkData.Contracts.SystemDeFiReference, SystemDeFiReference.abi, ethers.provider);
 
-		await manager.connect(ethers.provider.getSigner(deployer.address)).setDsrTokenAddress(dsr.address);
-		// await manager2.connect(ethers.provider.getSigner(deployer.address)).setDsrTokenAddress(dsr.address);
-		const managerDsrAddress = await manager.getDsrTokenAddress();
-		// const manager2DsrAddress = await manager2.getDsrTokenAddress();
-  	await dsr.connect(ethers.provider.getSigner(deployer.address)).addManager(manager.address);
-		// await dsr.connect(ethers.provider.getSigner(deployer.address)).addManager(manager2.address);
+	await manager.connect(ethers.provider.getSigner(deployer.address)).setDsrTokenAddress(dsr.address);
+	const managerDsrAddress = await manager.getDsrTokenAddress();
+	await dsr.connect(ethers.provider.getSigner(deployer.address)).addManager(manager.address);
 
-		const DsrHelper = await ethers.getContractFactory("DsrHelper");
+	console.log(`Manager has set DSR Token adddress as: ${managerDsrAddress}`);
 
-    dsrHelper = await DsrHelper.deploy(
-      dsr.address,
-      networkData.Contracts.ExchangeRouter,
-      networkData.Contracts.ReferenceSystemDeFi,
-      networkData.Contracts.SystemDeFiReference);
+	const DsrHelper = await ethers.getContractFactory("DsrHelper");
 
-		console.log(`Dsr Helper #1 address: ${dsrHelper.address}`);
+  dsrHelper = await DsrHelper.deploy(
+    dsr.address,
+    networkData.Contracts.ExchangeRouter,
+    networkData.Contracts.ReferenceSystemDeFi,
+    networkData.Contracts.SystemDeFiReference);
 
-    devComission = await DsrHelper.deploy(
-      networkData.ZeroAddress,
-      networkData.ZeroAddress,
-      networkData.ZeroAddress,
-      networkData.ZeroAddress);
+	console.log(`Dsr Helper #1 address: ${dsrHelper.address}`);
 
-		console.log(`Comission Helper address: ${devComission.address}`);
+  devComission = await DsrHelper.deploy(
+    networkData.ZeroAddress,
+    networkData.ZeroAddress,
+    networkData.ZeroAddress,
+    networkData.ZeroAddress);
 
-    await dsr.connect(ethers.provider.getSigner(deployer.address)).initializeTokenContract(
-      dsrHelper.address,
-      devComission.address,
-      networkData.Contracts.ExchangeRouter,
-      networkData.Contracts.ReferenceSystemDeFi,
-      networkData.Contracts.SystemDeFiReference, {gasLimit: 12000000});
+	console.log(`Comission Helper address: ${devComission.address}`);
+
+  await dsr.connect(ethers.provider.getSigner(deployer.address)).initializeTokenContract(
+    dsrHelper.address,
+    devComission.address,
+    networkData.Contracts.ExchangeRouter,
+    networkData.Contracts.ReferenceSystemDeFi,
+    networkData.Contracts.SystemDeFiReference, {gasLimit: GAS_LIMIT});
 
 		await sdr.connect(ethers.provider.getSigner(deployer.address)).setFarmContractAddress(dsr.address);
 		await sdr.connect(ethers.provider.getSigner(deployer.address)).setMarketingAddress(dsr.address);
-  // }
 }
 
 main()

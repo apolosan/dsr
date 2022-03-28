@@ -20,7 +20,7 @@ contract DsrHelperAvax is DsrHelper {
       0, // accept any amount of RSD
       path,
       address(this),
-      block.timestamp
+      block.timestamp+300
     ) { return true; } catch { return false; }
   }
 }

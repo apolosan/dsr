@@ -126,8 +126,8 @@ module.exports = {
     polygon: {
       url: `https://polygon-rpc.com/`,
       accounts: {mnemonic: mnemonic_},
-      blockGasLimit: 6000000,
-      gas: 5000000,
+      blockGasLimit: 12000000,
+      gas: 12000000,
       gasPrice: "auto",
       network_id: 137,
       timeout: 40000
@@ -157,7 +157,15 @@ module.exports = {
 			gasPrice: "auto",
 			network_id: 1666600000,
       timeout: 40000
-		}
+		},
+    bitgert: {
+      url: `https://mainnet-rpc.brisescan.com`,
+			accounts: {mnemonic: mnemonic_},
+			gas: 5000000,
+			gasPrice: "auto",
+			network_id: 32520,
+      timeout: 40000
+    }
 	},
 	etherscan: {
 		apiKey: 'FIHXBFSNE8869E9HIQSCU9RPGBK31WXG3P',

@@ -16,6 +16,13 @@ async function main() {
 	);
 
 	console.log(`BasicManager address: ${manager.address}`);
+
+	await manager.connect(ethers.provider.getSigner(deployer.address)).setDsrTokenAddress(networkData.Contracts.DeFiSystemReference);
+	let dsrTokenAddress = await manager.getDsrTokenAddress();
+
+	console.log(`BasicManager ${manager.address} set DSR Token address as: ${dsrTokenAddress}`);
+	dsrTokenAddress = await manager.getDsrTokenAddress();
+	console.log(`DSR Token set on parameters as: ${networkData.Contracts.DeFiSystemReference}`);
 }
 
 main()
