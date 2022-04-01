@@ -168,9 +168,9 @@ module.exports = {
     }
 	},
 	etherscan: {
-		apiKey: 'QWKV5BVBXZCQN3N5WP2VNGA4D71NQ1VMHR' // BSC => '8ZXMJ7AH5EF37XYBYK32XC148XXIEQNQ9M', //'FIHXBFSNE8869E9HIQSCU9RPGBK31WXG3P',
+		apiKey: ''
 	},
 	ftmscan: {
-		apiKey: 'QVS2K8CNVXQW7HF12KRW354EBQSJVZCS7U'
+		apiKey: ''
 	}
 };
