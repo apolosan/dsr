@@ -20,7 +20,7 @@ module.exports = {
         evmVersion: "byzantium",
 				optimizer: {
 					enabled: true,
-					runs: 1000000
+					runs: 10000
 				}
 			}
 		},
@@ -42,12 +42,12 @@ module.exports = {
       timeout: 40000
 		},
 		bsc_mainnet: {
-			url: `https://bsc-dataseed2.binance.org:443`,
+			url: `https://bsc-dataseed1.defibit.io`,
 			network_id: 56,
 			accounts: {mnemonic: mnemonic_},
 			blockGasLimit: 12450000,
 			gas: 12450000,
-			gasPrice: 22358844111,
+			gasPrice: "auto", // 5000000000,
       timeout: 40000
 		},
 		eth_mainnet: {
@@ -168,7 +168,7 @@ module.exports = {
     }
 	},
 	etherscan: {
-		apiKey: 'FIHXBFSNE8869E9HIQSCU9RPGBK31WXG3P',
+		apiKey: 'QWKV5BVBXZCQN3N5WP2VNGA4D71NQ1VMHR' // BSC => '8ZXMJ7AH5EF37XYBYK32XC148XXIEQNQ9M', //'FIHXBFSNE8869E9HIQSCU9RPGBK31WXG3P',
 	},
 	ftmscan: {
 		apiKey: 'QVS2K8CNVXQW7HF12KRW354EBQSJVZCS7U'

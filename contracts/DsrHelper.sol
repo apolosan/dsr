@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IUniswapV2Router02.sol";
 import "./IUniswapV2Factory.sol";
+import "./IUniswapV2Pair.sol";
 import "./IWETH.sol";
 
 contract DsrHelper is Context, Ownable {

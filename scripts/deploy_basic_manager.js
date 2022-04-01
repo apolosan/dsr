@@ -1,6 +1,10 @@
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon_testnet.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/fantom.json")));
+
+//const ASSETS = networkData.Contracts.Assets;
+const ASSETS = [networkData.Contracts.Assets[2], networkData.Contracts.Assets[3]];
+const GAS_LIMIT = 12000000;
 
 async function main() {
 
@@ -11,18 +15,23 @@ async function main() {
 	const Manager = await ethers.getContractFactory("BasicManager");
 	const manager = await Manager.deploy(
 		networkData.Contracts.ExchangeRouter,
-		networkData.Contracts.Assets,
-		networkData.Contracts.Assets[0]
+		ASSETS,
+		networkData.Contracts.Assets[0],
+		{gasLimit: GAS_LIMIT}
 	);
 
 	console.log(`BasicManager address: ${manager.address}`);
 
 	await manager.connect(ethers.provider.getSigner(deployer.address)).setDsrTokenAddress(networkData.Contracts.DeFiSystemReference);
+	await new Promise(resolve => setTimeout(resolve, 10000));
 	let dsrTokenAddress = await manager.getDsrTokenAddress();
 
+	const DeFiSystemReference = await artifacts.readArtifact("DeFiSystemReference");
+	const dsr = new ethers.Contract(networkData.Contracts.DeFiSystemReference, DeFiSystemReference.abi, ethers.provider);
+	await dsr.connect(ethers.provider.getSigner(deployer.address)).addManager(manager.address);
+
+	console.log(`DSR Token set parameters as: ${networkData.Contracts.DeFiSystemReference}`);
 	console.log(`BasicManager ${manager.address} set DSR Token address as: ${dsrTokenAddress}`);
-	dsrTokenAddress = await manager.getDsrTokenAddress();
-	console.log(`DSR Token set on parameters as: ${networkData.Contracts.DeFiSystemReference}`);
 }
 
 main()

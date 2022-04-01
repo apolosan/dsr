@@ -13,6 +13,7 @@
     "@nomiclabs/hardhat-etherscan": "^3.0.1",
     "@nomiclabs/hardhat-ganache": "^2.0.1",
     "@openzeppelin/contracts": "^4.2.0",
+    "@uniswap/lib": "^4.0.1-alpha",
     "@uniswap/sdk": "^3.0.3",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
