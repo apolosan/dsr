@@ -2,7 +2,7 @@
 // npx hardhat node --show-stack-traces --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon_testnet.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/bitgert.json")));
 
 async function main() {
 
@@ -22,8 +22,10 @@ async function main() {
 		  networkData.Contracts.DevComission,
 		  networkData.Contracts.ExchangeRouter,
 		  networkData.Contracts.ReferenceSystemDeFi,
-		  networkData.Contracts.SystemDeFiReference, {gasLimit: 12000000});
+		  networkData.Contracts.SystemDeFiReference);
 			console.log(`DSR Contract Initialized Sucessfully!`);
+			console.log(`------------------------------------------------`);
+			console.log(tx);
 	} catch {
 		console.log(`Unable to initialize DSR Contract:`);
 		console.log(`------------------------------------------------`);

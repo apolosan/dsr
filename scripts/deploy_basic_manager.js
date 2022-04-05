@@ -3,8 +3,8 @@ const path = require("path");
 const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/fantom.json")));
 
 //const ASSETS = networkData.Contracts.Assets;
-const ASSETS = [networkData.Contracts.Assets[2], networkData.Contracts.Assets[3]];
-const GAS_LIMIT = 12000000;
+const ASSETS = [networkData.Contracts.Assets[0], networkData.Contracts.Assets[1]];
+const GAS_LIMIT = 9000000;
 
 async function main() {
 

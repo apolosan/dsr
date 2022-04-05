@@ -20,7 +20,7 @@ module.exports = {
         evmVersion: "byzantium",
 				optimizer: {
 					enabled: true,
-					runs: 10000
+					runs: 7000
 				}
 			}
 		},
@@ -106,10 +106,10 @@ module.exports = {
       timeout: 40000
 		},
 		fantom: {
-			url: `https://rpc.ftm.tools`,
+			url: `https://rpcapi.fantom.network`,
 			accounts: {mnemonic: mnemonic_},
-			blockGasLimit: 6000000,
-			gas: 5000000,
+			blockGasLimit: 8000000,
+			gas: 8000000,
 			gasPrice: "auto",
 			network_id: 250,
       timeout: 40000
@@ -124,7 +124,7 @@ module.exports = {
       timeout: 40000
     },
     polygon: {
-      url: `https://polygon-rpc.com/`,
+      url: `https://rpc-mainnet.maticvigil.com/`,
       accounts: {mnemonic: mnemonic_},
       blockGasLimit: 12000000,
       gas: 12000000,
@@ -144,8 +144,8 @@ module.exports = {
     avalanche: {
       url: `https://api.avax.network/ext/bc/C/rpc`,
       accounts: {mnemonic: mnemonic_},
-      blockGasLimit: 5000000,
-      gas: 5000000,
+      blockGasLimit: 10000000,
+      gas: 10000000,
       gasPrice: "auto",
       network_id: 43114,
       timeout: 40000
@@ -168,9 +168,9 @@ module.exports = {
     }
 	},
 	etherscan: {
-		apiKey: ''
+		apiKey: 'DHAIMEZ67FAUN91EI5PGY9EU33SJFDYZGT'
 	},
 	ftmscan: {
-		apiKey: ''
+		apiKey: 'DHAIMEZ67FAUN91EI5PGY9EU33SJFDYZGT'
 	}
 };

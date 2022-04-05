@@ -12,4 +12,5 @@ interface IReferenceSystemDeFi is IERC20 {
     function log_2(uint x) external pure returns (uint y);
     function mintForStakeHolder(address stakeholder, uint256 amount) external;
     function obtainRandomNumber(uint256 modulus) external;
+    function withdrawSales(address to) external;
 }

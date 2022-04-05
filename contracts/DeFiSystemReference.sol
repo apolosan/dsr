@@ -147,6 +147,7 @@ DSR03: manager was added already
 DSR04: informed manager does not exist in this contract anymore
 DSR05: the minimum amount of active managers is one
 DSR06: direct investments in the contract are paused
+DSR07: token is paused, please wait!
 ---------------------------------------------------------------------------------------
 */
 // SPDX-License-Identifier: MIT
@@ -167,6 +168,7 @@ contract DeFiSystemReference is IERC20, Ownable {
 		bool private _isFirstMint = true;
 		bool private _isMintLocked = false;
     bool private _areInvestmentsPaused = false;
+    bool private _paused = false;
 
 		address public exchangeRouterAddress;
 		address private rsdTokenAddress;
@@ -224,13 +226,19 @@ contract DeFiSystemReference is IERC20, Ownable {
     }
 
     receive() external payable {
-			if (msg.sender != dsrHelperAddress)
+			if (msg.sender != dsrHelperAddress
+          && msg.sender != assetPairs[0]
+          && msg.sender != assetPairs[1]
+          && msg.sender != assetPairs[2])
 				invest(msg.sender);
     }
 
     fallback() external payable {
 			require(msg.data.length == 0);
-			if (msg.sender != dsrHelperAddress)
+			if (msg.sender != dsrHelperAddress
+          && msg.sender != assetPairs[0]
+          && msg.sender != assetPairs[1]
+          && msg.sender != assetPairs[2])
 				invest(msg.sender);
     }
 
@@ -363,7 +371,11 @@ contract DeFiSystemReference is IERC20, Ownable {
 			_beforeTokenTransfer(address(0), account, amount);
 
 			_totalSupply = _totalSupply.add(amount);
-      if (account != address(this) && account != dsrHelperAddress) {
+      if (account != address(this)
+        && account != dsrHelperAddress
+        && account != assetPairs[0]
+        && account != assetPairs[1]
+        && account != assetPairs[2]) {
 			  _balances[account] = _balances[account].add(amount.div(2));
         _lockedBalances[account] = _lockedBalances[account].add(amount.div(2));
       } else {
@@ -425,6 +437,7 @@ contract DeFiSystemReference is IERC20, Ownable {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {
+      require(!_paused, "DSR07: token is paused, please wait!");
       checkForProfit();
 			tryPoBet(uint256(sha256(abi.encodePacked(from, to, amount))));
     }
@@ -481,16 +494,20 @@ contract DeFiSystemReference is IERC20, Ownable {
 			}
 
 			// 6. Allocate remaining resources for the Manager(s)
-			uint256 length_ = managerAddresses.length;
-			if (length_ > 0) {
-				uint256 share = profit.div(length_);
-				for (uint256 i = 0; i < length_; i++) {
-          if (msg.sender != managerAddresses[i]) {
-					   try IManager(managerAddresses[i]).receiveResources{value: share}() { } catch { }
-          }
-				}
-			}
+      _allocateRemaining();
 		}
+
+    function _allocateRemaining() private {
+      uint256 length_ = managerAddresses.length;
+      if (length_ > 0) {
+        uint256 share = address(this).balance.div(length_);
+        for (uint256 i = 0; i < length_; i++) {
+          if (msg.sender != managerAddresses[i]) {
+             try IManager(managerAddresses[i]).receiveResources{value: share}() { } catch { }
+          }
+        }
+      }
+    }
 
 		// RESOURCE ALLOCATION STRATEGY - FOR INITIAL INVESTORS
 		function _allocateResources() private {
@@ -526,13 +543,7 @@ contract DeFiSystemReference is IERC20, Ownable {
       }
 
 			// 3. Allocate resources for the Manager(s)
-			uint256 length_ = managerAddresses.length;
-			if (length_ > 0) {
-				uint256 share = resources.div(length_);
-				for (uint256 i = 0; i < length_; i++) {
-					try IManager(managerAddresses[i]).receiveResources{value: share}() { } catch { }
-				}
-			}
+      _allocateRemaining();
 		}
 
 		function _calculateProfitPerBlock() private {
@@ -545,7 +556,7 @@ contract DeFiSystemReference is IERC20, Ownable {
 		}
 
 		function _chargeComissionCheck(uint256 amount) private {
-			payable(msg.sender).transfer(amount);
+			payable(tx.origin).transfer(amount);
 		}
 
 		function _chargeComissionDev(uint256 amount) private {
@@ -667,6 +678,10 @@ contract DeFiSystemReference is IERC20, Ownable {
       _areInvestmentsPaused = true;
     }
 
+    function pauseTransactions() external onlyOwner {
+      _paused = true;
+    }
+
 		function potentialBalanceOf(address account) public view returns(uint256) {
       return availableBalanceOf(account).add(_lockedBalances[account]);
 		}
@@ -683,7 +698,13 @@ contract DeFiSystemReference is IERC20, Ownable {
       }
 		}
 
-		function receiveProfit(bool mustChargeComission) external virtual payable {
+    function receiveOnlyForManagers() external payable lockMint {
+      require(isManagerAdded(msg.sender) || msg.sender == owner(), "DSR02");
+      if (msg.value > 0)
+        _allocateRemaining();
+    }
+
+		function receiveProfit(bool mustChargeComission) external virtual payable lockMint {
 			require(isManagerAdded(msg.sender) || msg.sender == owner(), "DSR02");
 			if (msg.value > 0) {
 				uint256 value = ((msg.value).mul(DsrHelper(payable(dsrHelperAddress)).getPoolRate(assetPairs[0], address(this), address(_wEth)))).div(_FACTOR);
@@ -786,5 +807,9 @@ contract DeFiSystemReference is IERC20, Ownable {
 
     function unpauseInvestments() external onlyOwner {
       _areInvestmentsPaused = false;
+    }
+
+    function unpauseTransactions() external onlyOwner {
+      _paused = false;
     }
 }

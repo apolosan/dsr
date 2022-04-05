@@ -1,5 +1,3 @@
-// npx ganache --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL --miner.blockTime 0 --fork.requestsPerSecond 0 --wallet.mnemonic "pudding party palace jazz august scissors fog knock enjoy direct matrix spot"
-// npx hardhat node --show-stack-traces --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL
 const fs = require('fs');
 const path = require("path");
 const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/fantom.json")));
@@ -13,20 +11,16 @@ async function main() {
 	console.log(`Deploying contracts with the acount: ${deployer.address}`);
 	console.log(`Account balance: ${(await deployer.getBalance()).toString()}`);
 
-	const Manager = await ethers.getContractFactory("BasicManager");
-	const manager = await Manager.deploy(
-		networkData.Contracts.ExchangeRouter,
-		networkData.Contracts.Assets,
-		networkData.Contracts.Assets[0]);
+  const Manager = await artifacts.readArtifact("BasicManager");
+  const manager = new ethers.Contract(networkData.Contracts.Managers[0], Manager.abi, ethers.provider);
 
-	console.log(`BasicManager #1 address: ${manager.address}`);
-	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-  const DeFiSystemReference = await ethers.getContractFactory("DeFiSystemReference");
-  const dsr = await DeFiSystemReference.deploy("DeFi System for Reference", "DSR", {gasLimit: GAS_LIMIT});
+  const DeFiSystemReference = await artifacts.readArtifact("DeFiSystemReference");
+  const dsr = new ethers.Contract(networkData.Contracts.DeFiSystemReference, DeFiSystemReference.abi, ethers.provider);
 
+  await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 	console.log(`DeFiSystemReference address: ${dsr.address}`);
-	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
+
 
 	const SystemDeFiReference = await artifacts.readArtifact("SystemDeFiReference");
 	const sdr = new ethers.Contract(networkData.Contracts.SystemDeFiReference, SystemDeFiReference.abi, ethers.provider);
