@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/fantom.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
 
 //const ASSETS = networkData.Contracts.Assets;
-const ASSETS = [networkData.Contracts.Assets[0], networkData.Contracts.Assets[1]];
+const ASSETS = [networkData.Contracts.Assets[1], networkData.Contracts.Assets[2]];
 const GAS_LIMIT = 9000000;
+const NONCE = 169;
 
 async function main() {
 
@@ -19,6 +20,8 @@ async function main() {
 		networkData.Contracts.Assets[0],
 		{gasLimit: GAS_LIMIT}
 	);
+	// const Manager = await artifacts.readArtifact("BasicManager");
+	// const manager = new ethers.Contract("0xA7013C2397CF29B7a8D965eC155EC4A6a5606D8f", Manager.abi, ethers.provider);
 
 	console.log(`BasicManager address: ${manager.address}`);
 

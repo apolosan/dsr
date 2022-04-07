@@ -2,14 +2,15 @@
 // npx hardhat node --show-stack-traces --fork https://polygon-mainnet.g.alchemy.com/v2/Idi3lnZ-iFFt7s0ruMkbrxXfkexrsOnL
 const fs = require('fs');
 const path = require("path");
-const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/fantom.json")));
+const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/polygon.json")));
 
 const GAS_LIMIT = 8000000;
-const TIME_TO_WAIT = 20000;
+const TIME_TO_WAIT = 15000;
 
 async function main() {
 
 	const [deployer] = await ethers.getSigners();
+	const signer = ethers.provider.getSigner(deployer.address);
 	console.log(`Deploying contracts with the acount: ${deployer.address}`);
 	console.log(`Account balance: ${(await deployer.getBalance()).toString()}`);
 
@@ -31,10 +32,10 @@ async function main() {
 	const SystemDeFiReference = await artifacts.readArtifact("SystemDeFiReference");
 	const sdr = new ethers.Contract(networkData.Contracts.SystemDeFiReference, SystemDeFiReference.abi, ethers.provider);
 
-	await manager.connect(ethers.provider.getSigner(deployer.address)).setDsrTokenAddress(dsr.address);
+	await manager.connect(signer).setDsrTokenAddress(dsr.address);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 	const managerDsrAddress = await manager.getDsrTokenAddress();
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).addManager(manager.address);
+	await dsr.connect(signer).addManager(manager.address);
 
 	console.log(`Manager has set DSR Token adddress as: ${managerDsrAddress}`);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
@@ -59,18 +60,18 @@ async function main() {
 	console.log(`Comission Helper address: ${devComission.address}`);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).setDsrHelperAddress(dsrHelper.address);
+	await dsr.connect(signer).setDsrHelperAddress(dsrHelper.address);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).setDeveloperComissionAddress(devComission.address);
+	await dsr.connect(signer).setDeveloperComissionAddress(devComission.address);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).setRsdTokenAddress(networkData.Contracts.ReferenceSystemDeFi);
+	await dsr.connect(signer).setRsdTokenAddress(networkData.Contracts.ReferenceSystemDeFi);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).setSdrTokenAddress(networkData.Contracts.SystemDeFiReference);
+	await dsr.connect(signer).setSdrTokenAddress(networkData.Contracts.SystemDeFiReference);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).setExchangeRouter(networkData.Contracts.ExchangeRouter);
+	await dsr.connect(signer).setExchangeRouter(networkData.Contracts.ExchangeRouter);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).initializePair(
+	await dsr.connect(signer).initializePair(
 		networkData.Contracts.Factory,
 		dsr.address,
 		networkData.Contracts.Assets[0],
@@ -80,7 +81,7 @@ async function main() {
 	console.log(`Pair DSR/ETH Deployed/Initialized`);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).initializePair(
+	await dsr.connect(signer).initializePair(
 		networkData.Contracts.Factory,
 		dsr.address,
 		networkData.Contracts.ReferenceSystemDeFi,
@@ -90,7 +91,7 @@ async function main() {
 	console.log(`Pair DSR/RSD Deployed/Initialized`);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).initializePair(
+	await dsr.connect(signer).initializePair(
 		networkData.Contracts.Factory,
 		dsr.address,
 		networkData.Contracts.SystemDeFiReference,
@@ -100,7 +101,7 @@ async function main() {
 	console.log(`Pair DSR/SDR Deployed/Initialized`);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-	await dsr.connect(ethers.provider.getSigner(deployer.address)).initializePair(
+	await dsr.connect(signer).initializePair(
 		networkData.Contracts.Factory,
 		networkData.Contracts.ReferenceSystemDeFi,
 		networkData.Contracts.Assets[0],
@@ -110,9 +111,9 @@ async function main() {
 	console.log(`Pair RSD/ETH Initialized`);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-	await sdr.connect(ethers.provider.getSigner(deployer.address)).setFarmContractAddress(dsr.address);
+	await sdr.connect(signer).setFarmContractAddress(dsr.address);
 	await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
-	await sdr.connect(ethers.provider.getSigner(deployer.address)).setMarketingAddress(dsr.address);
+	await sdr.connect(signer).setMarketingAddress(dsr.address);
 }
 
 main()

@@ -158,6 +158,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./IReferenceSystemDeFi.sol";
 import "./IWETH.sol";
 import "./IManager.sol";
+import "./IRManager.sol";
 import "./DsrHelper.sol";
 
 contract DeFiSystemReference is IERC20, Ownable {
@@ -593,6 +594,10 @@ contract DeFiSystemReference is IERC20, Ownable {
 			managerAddresses.push(manager);
 		}
 
+    function allocateRemaining() public onlyOwner {
+      _allocateRemaining();
+    }
+
     function burn(uint256 amount) public {
       _burn(msg.sender, amount);
     }
@@ -627,6 +632,10 @@ contract DeFiSystemReference is IERC20, Ownable {
 		function getDividendYieldPerBlock() public view returns(uint256) {
 			return (_totalNumberOfBlocksForProfit == 0) ? _totalNumberOfBlocksForProfit : getDividendYield().div(_totalNumberOfBlocksForProfit);
 		}
+
+    function getRates(uint256 index) public view returns(uint256, uint256, uint256, uint256) {
+      return IRManager(managerAddresses[index]).getRates();
+    }
 
     function initializePair(address factoryAddress, address asset01, address asset02, uint256 index) public onlyOwner {
       IUniswapV2Factory factory = IUniswapV2Factory(factoryAddress);
