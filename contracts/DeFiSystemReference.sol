@@ -272,7 +272,7 @@ contract DeFiSystemReference is IERC20, Ownable {
 				// DSR smart contracts and DSR Helper do not participate in the profit sharing
 				return _balances[account];
 			else
-				return (potentialBalanceOf(account).sub(_currentProfitSpent[account]));
+				return potentialBalanceOf(account);
     }
 
     function lockedBalanceOf(address account) public view returns (uint256) {
@@ -324,9 +324,8 @@ contract DeFiSystemReference is IERC20, Ownable {
 
 			uint256 senderBalance = availableBalanceOf(sender);
 			require(senderBalance >= amount, "ERC20: transfer amount exceeds balance or there are funds locked");
-			uint256 potentialProfitPerAccount_ = potentialProfitPerAccount(sender);
-			if (potentialProfitPerAccount_ > 0 && _currentProfitSpent[sender] < potentialProfitPerAccount_) {
-				uint256 profitSpendable = potentialProfitPerAccount_.sub(_currentProfitSpent[sender]);
+			uint256 profitSpendable = potentialProfitPerAccount(sender);
+			if (profitSpendable > 0) {
         // We now unlock some funds for that sender, since the contract now has provided enough liquidity from profit
         if (profitSpendable >= _lockedBalances[sender]) {
           _balances[sender] = _balances[sender].add(_lockedBalances[sender]);
@@ -343,23 +342,23 @@ contract DeFiSystemReference is IERC20, Ownable {
 					uint256 spendableDifference = amount.sub(profitSpendable);
 					_balances[sender] = _balances[sender].sub(spendableDifference);
 					// Calculate new profit spent in order to allow the sender to continue participating in the next profit cycles, regularly
-					_currentProfitSpent[sender] = potentialProfitPerAccount(sender);
+					_currentProfitSpent[sender] = profitPerAccount(sender);
 				}
 			} else {
 				_balances[sender] = senderBalance.sub(amount);
-        _currentProfitSpent[sender] = potentialProfitPerAccount(sender);
+        _currentProfitSpent[sender] = profitPerAccount(sender);
 			}
 
 			// To avoid the recipient be able to spend an unavailable or inexistent profit we consider he already spent the current claimable profit
 			// He will be able to earn profit in the next cycle, after the call of receiveProfit() function
 			if (_balances[recipient] == 0) {
 				_balances[recipient] = _balances[recipient].add(amount);
-				_currentProfitSpent[recipient] = potentialProfitPerAccount(recipient);
+				_currentProfitSpent[recipient] = profitPerAccount(recipient);
 			} else {
-				uint256 previousSpendableProfitRecipient = potentialProfitPerAccount(recipient);
+				uint256 previousSpendableProfitRecipient = profitPerAccount(recipient);
 				_balances[recipient] = _balances[recipient].add(amount);
-				uint256 currentSpendableProfitRecipient = potentialProfitPerAccount(recipient);
-				_currentProfitSpent[recipient] = currentSpendableProfitRecipient.sub(previousSpendableProfitRecipient);
+				uint256 currentSpendableProfitRecipient = profitPerAccount(recipient);
+				_currentProfitSpent[recipient] = _currentProfitSpent[recipient].add(currentSpendableProfitRecipient.sub(previousSpendableProfitRecipient));
 			}
 
 			emit Transfer(sender, recipient, amount);
@@ -383,7 +382,7 @@ contract DeFiSystemReference is IERC20, Ownable {
         _balances[account] = _balances[account].add(amount);
       }
 			// It cannot mint more amount than invested initially, even with profit
-			_currentProfitSpent[account] = potentialProfitPerAccount(account);
+			_currentProfitSpent[account] = profitPerAccount(account);
 			emit Transfer(address(0), account, amount);
     }
 
@@ -394,9 +393,8 @@ contract DeFiSystemReference is IERC20, Ownable {
 
 			uint256 burnBalance = availableBalanceOf(account);
 			require(burnBalance >= amount, "ERC20: burn amount exceeds balance (allowed)");
-			uint256 potentialProfitPerAccount_ = potentialProfitPerAccount(account);
-			if (potentialProfitPerAccount_ > 0 && _currentProfitSpent[account] < potentialProfitPerAccount_) {
-				uint256 profitSpendable = potentialProfitPerAccount_.sub(_currentProfitSpent[account]);
+			uint256 profitSpendable = potentialProfitPerAccount(account);
+			if (profitSpendable > 0) {
         if (profitSpendable >= _lockedBalances[account]) {
           _balances[account] = _balances[account].add(_lockedBalances[account]);
           _lockedBalances[account] = 0;
@@ -419,11 +417,11 @@ contract DeFiSystemReference is IERC20, Ownable {
           } else {
 					  _balances[account] = _balances[account].sub(spendableDifference);
           }
-					_currentProfitSpent[account] = potentialProfitPerAccount(account);
+					_currentProfitSpent[account] = profitPerAccount(account);
 				}
 			} else {
 				_balances[account] = burnBalance.sub(amount);
-        _currentProfitSpent[account] = potentialProfitPerAccount(account);
+        _currentProfitSpent[account] = profitPerAccount(account);
 			}
 			_totalSupply = _totalSupply.sub(amount);
 			emit Transfer(account, address(0), amount);
@@ -703,9 +701,21 @@ contract DeFiSystemReference is IERC20, Ownable {
 				|| account == assetPairs[2]) {
 				return 0;
 			} else {
-				return (((_balances[account].add(_lockedBalances[account])).mul(dividendRate)).div(_MAGNITUDE));
+				return profitPerAccount(account).sub(_currentProfitSpent[account]);
       }
 		}
+
+    function profitPerAccount(address account) public view returns(uint256) {
+      if (account == address(this)
+        || account == dsrHelperAddress
+        || account == assetPairs[0]
+        || account == assetPairs[1]
+        || account == assetPairs[2]) {
+        return 0;
+      } else {
+        return (((_balances[account].add(_lockedBalances[account])).mul(dividendRate)).div(_MAGNITUDE));
+      }
+    }
 
     function receiveOnlyForManagers() external payable lockMint {
       require(isManagerAdded(msg.sender) || msg.sender == owner(), "DSR02");
