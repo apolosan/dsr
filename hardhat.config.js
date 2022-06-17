@@ -27,9 +27,9 @@ module.exports = {
 	networks: {
 		development: {
       url: `http://127.0.0.1:8545`,
-			mnemonic: mnemonic_,
+			mnemonic: {mnemonic: mnemonic_},
 			gas: "auto",
-			gasPrice: "auto",
+			gasPrice: 62283819765,
       timeout: 40000
 		},
 		bsc_testnet: {
@@ -128,7 +128,7 @@ module.exports = {
       accounts: {mnemonic: mnemonic_},
       blockGasLimit: 12000000,
       gas: 12000000,
-      gasPrice: "auto",
+      gasPrice: 62283819765,
       network_id: 137,
       timeout: 40000
     },
